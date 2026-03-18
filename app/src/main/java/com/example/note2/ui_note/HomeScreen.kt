@@ -1,7 +1,5 @@
 package com.example.note2.ui_note
 
-import androidx.compose.foundation.clickable
-import androidx.compose.runtime.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,10 +8,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.example.note2.components_ui.DeleteConfirmDialog
 import com.example.note2.model.NoteModel
 import com.example.note2.viewmodel.NoteViewModel
-import androidx.compose.material.icons.filled.Delete
+import com.example.note2.components_ui.NoteItem
+import com.example.note2.components_ui.NoteSearchBar
+import com.example.note2.components_ui.NotesTopBar
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,64 +23,60 @@ fun HomeScreen(
     viewModel: NoteViewModel,
     onAddNote: () -> Unit,
     onEditNote: (NoteModel) -> Unit
+
 ) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Danh sách ghi chú") }, colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-            actionIconContentColor = MaterialTheme.colorScheme.onPrimary
-        )) },
+        topBar = {
+            NotesTopBar(onToggleSearch = { viewModel.toggleSearch() })
+
+        },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddNote) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
     ) { innerPadding ->
-        LazyColumn(modifier = Modifier.padding(innerPadding)) {
-            items(viewModel.notes) { note ->
-                NoteItem(
-                    note = note,
-                    onClick = { onEditNote(note) },
-                    onDelete = { viewModel.deleteNote(it) }
+
+          viewModel.noteToDelete?.let{
+              DeleteConfirmDialog(
+                  onConfirm = { viewModel.confirmDelete() },
+                  onDismiss = { viewModel.dismissDeleteDialog() }
+              )
+          }
+            if (viewModel.isSearchActive) {
+                NoteSearchBar(
+                    searchText = viewModel.searchText,
+                    onSearch = { viewModel.filterNotes(it) },
+                    searchResults = viewModel.searchResults,
+                    onClose = { viewModel.toggleSearch() },
+                    onNoteClick = { note ->
+                        viewModel.toggleSearch() // ĐÓNG SEARCH TRƯỚC KHI ĐI
+                        onEditNote(note)
+                    },
+                    onDeleteClick = { note ->
+                        viewModel.showDeleteDialog(note)
+                    },
+                    modifier = Modifier.padding(innerPadding)
                 )
-            }
-        }
-    }
-}
-    @Composable
-    fun NoteItem(
-        note: NoteModel,
-        onClick: (NoteModel) -> Unit,
-        onDelete: (NoteModel) -> Unit
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .clickable { onClick(note) },
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = note.title, style = MaterialTheme.typography.titleLarge)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = note.description, style = MaterialTheme.typography.bodyMedium)
-                }
-                IconButton(onClick = { onDelete(note) }) {
-                    Icon(
-                        imageVector = Icons.Filled.Delete,
-                        contentDescription = "Xóa",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+            } else {
+                LazyColumn(modifier = Modifier.padding(innerPadding)) {
+                    items(viewModel.notes) { note ->
+                        NoteItem(
+                            note = note,
+                            onClick = { onEditNote(note) },
+                            onDelete = { viewModel.showDeleteDialog(it) }
+                        )
+                    }
                 }
             }
         }
     }
+
+
+
+
+
+
 
 
 

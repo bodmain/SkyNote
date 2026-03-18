@@ -8,7 +8,8 @@ data class NoteModel(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
     val description: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val color: Long = 0xFFFFFFFF
 )
 
 

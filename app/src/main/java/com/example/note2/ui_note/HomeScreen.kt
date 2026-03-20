@@ -22,7 +22,8 @@ import com.example.note2.components_ui.NotesTopBar
 fun HomeScreen(
     viewModel: NoteViewModel,
     onAddNote: () -> Unit,
-    onEditNote: (NoteModel) -> Unit
+    onEditNote: (NoteModel) -> Unit,
+    onNoteClick: (Int) -> Unit
 
 ) {
     Scaffold(
@@ -50,7 +51,7 @@ fun HomeScreen(
                     searchResults = viewModel.searchResults,
                     onClose = { viewModel.toggleSearch() },
                     onNoteClick = { note ->
-                        viewModel.toggleSearch() // ĐÓNG SEARCH TRƯỚC KHI ĐI
+                        viewModel.toggleSearch()
                         onEditNote(note)
                     },
                     onDeleteClick = { note ->

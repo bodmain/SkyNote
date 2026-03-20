@@ -38,13 +38,13 @@ fun NoteDetailScreen(
     var selectedColor by remember { mutableStateOf(existingNote?.color ?: 0xFFFFFFFF) }
 
     Scaffold(
-        containerColor = Color(selectedColor), // FIX 1: Chuyển Long sang Color
+        containerColor = Color(selectedColor),
         topBar = {
             TopAppBar(
                 title = { },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent
-                ), // Đóng ngoặc đúng chỗ tại đây cho colors
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -66,21 +66,21 @@ fun NoteDetailScreen(
                         Text("Xong", style = MaterialTheme.typography.titleMedium)
                     }
                 }
-            ) // Kết thúc TopAppBar
+            )
         },
         bottomBar = {
             BottomAppBar(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.8f),
                 contentPadding = PaddingValues(horizontal = 8.dp),
                 actions = {
-                    IconButton(onClick = { /* Logic chọn màu ở đây */ }) {
-                        // Nếu chưa cài Extended Icons, hãy dùng Icons.Default.Edit thay thế tạm
+                    IconButton(onClick = {  }) {
+
                         Icon(Icons.Default.Palette, contentDescription = "Chọn màu")
                     }
-                    IconButton(onClick = { /* Mở gallery */ }) {
+                    IconButton(onClick = { /* */ }) {
                         Icon(Icons.Default.Image, contentDescription = "Thêm ảnh")
                     }
-                    IconButton(onClick = { /* Danh sách */ }) {
+                    IconButton(onClick = { /*  */ }) {
                         Icon(Icons.Default.FormatListBulleted, contentDescription = "Danh sách")
                     }
 
@@ -99,7 +99,7 @@ fun NoteDetailScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 20.dp)
-                .verticalScroll(rememberScrollState()) // Thêm cuộn nếu nội dung dài
+                .verticalScroll(rememberScrollState())
         ) {
             TextField(
                 value = title,

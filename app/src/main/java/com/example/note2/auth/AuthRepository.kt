@@ -1,29 +1,44 @@
 package com.example.note2.auth
 
+import com.google.firebase.auth.FirebaseAuth
+
 class AuthRepository {
+    private val auth = FirebaseAuth.getInstance()
     fun login(
         email: String,
         password: String,
         onResult: (Boolean, String?) -> Unit
     ) {
-        if (email == "abc@gmail.com" && password == "12345678") {
-            onResult(true, null)
-        } else {
-            onResult(false, "Email hoặc mật khẩu không đúng")
-        }
-
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onResult(true, null)
+                } else {
+                    onResult(false, task.exception?.message)
+                }
+            }
     }
+
     fun register(
         email: String,
         password: String,
-        onResult: (Boolean,String?) -> Unit
-    ){
-        if(email.isNotBlank() && password.length >= 6){
-            onResult(true,null)
-        }
-        else {
-            onResult(false,"Email hoặc mật khẩu không hợp lệ")
-        }
-    
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        auth.createUserWithEmailAndPassword(email, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onResult(true, null)
+                } else {
+                    onResult(false, task.exception?.message)
+                }
+            }
     }
+
+    fun logout() {
+        FirebaseAuth.getInstance().signOut()
+    }
+    fun isUserLoggedIn(): Boolean {
+        return auth.currentUser != null
+    }
+
 }

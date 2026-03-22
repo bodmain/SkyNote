@@ -34,7 +34,6 @@ fun NoteDetailScreen(
     var description by remember { mutableStateOf(existingNote?.description ?: "") }
     val focusRequester = remember { FocusRequester() }
 
-    // Lưu ý: selectedColor ở đây là Long
     var selectedColor by remember { mutableStateOf(existingNote?.color ?: 0xFFFFFFFF) }
 
     Scaffold(

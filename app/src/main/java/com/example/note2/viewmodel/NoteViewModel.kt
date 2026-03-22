@@ -1,14 +1,15 @@
 package com.example.note2.viewmodel
 
-import android.R.attr.text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.note2.data.NoteDao
 import com.example.note2.model.NoteModel
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class NoteViewModel(private val dao: NoteDao) : ViewModel() {
@@ -24,13 +25,34 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
     var noteToDelete by mutableStateOf<NoteModel?>(null)
         private set
 
+    private var notesJob: Job? = null
 
     init {
-        viewModelScope.launch {
-            dao.getAllNotes().collect { listOfNotes ->
-                notes = listOfNotes
+        startObservingNotes()
+    }
+
+    // Hàm này dùng để bắt đầu lắng nghe note của user hiện tại
+    fun startObservingNotes() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            notesJob?.cancel() // Huỷ lắng nghe cũ nếu có
+            notesJob = viewModelScope.launch {
+                dao.getNotesByUser(userId).collectLatest { listOfNotes ->
+                    notes = listOfNotes
+                }
             }
+        } else {
+            notes = emptyList() // Nếu không có user, xóa danh sách
         }
+    }
+
+    // Hàm xóa dữ liệu khi Logout
+    fun clearData() {
+        notesJob?.cancel()
+        notesJob = null
+        notes = emptyList()
+        searchText = ""
+        isSearchActive = false
     }
 
     // search note
@@ -52,19 +74,24 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
     }
 
     // add note
-    fun addNote(title: String, description: String,color: Long = 0xFFFFFFFF) {
+    fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF) {
         if (title.isBlank() && description.isBlank()) return
 
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        
+        // Đảm bảo luôn lắng nghe đúng user trước khi add
+        if (notesJob == null || !notesJob!!.isActive) {
+            startObservingNotes()
+        }
+
         viewModelScope.launch {
-            val newId = if (notes.isEmpty()) 1 else notes.last().id + 1
             val newNote = NoteModel(
                 title = title,
                 description = description,
                 timestamp = System.currentTimeMillis(),
-                color = color
-
+                color = color,
+                userId = userId
             )
-            notes = notes + newNote
             dao.insert(newNote)
         }
     }
@@ -81,11 +108,6 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         viewModelScope.launch {
             dao.delete(note)
         }
-        notes = notes.filter { it.id != note.id }
-        if (isSearchActive) {
-            filterNotes(searchText)
-
-        }
     }
 
     fun dismissDeleteDialog() {
@@ -97,20 +119,17 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
             deleteNote(it)
             noteToDelete = null
         }
-
     }
 
     fun showDeleteDialog(note: NoteModel) {
         noteToDelete = note
     }
 
-    //
     fun updateNoteColor(noteId: Int, newColor: Long) {
-        notes = notes.map {
-            if (it.id == noteId) {
-                it.copy(color = newColor)
-            } else {
-                it
+        viewModelScope.launch {
+            val noteToUpdate = notes.find { it.id == noteId }
+            noteToUpdate?.let {
+                dao.update(it.copy(color = newColor))
             }
         }
     }

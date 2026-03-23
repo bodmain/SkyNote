@@ -37,7 +37,7 @@ fun SplashScreen(
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        // Animation chạy song song
+
         launch {
             scale.animateTo(
                 targetValue = 1f,
@@ -51,7 +51,7 @@ fun SplashScreen(
             )
         }
 
-        delay(2000) // Đợi một chút để người dùng kịp ngắm logo cam xịn xò
+        delay(2000)
 
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
@@ -93,7 +93,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Notes App",
+                text = "SkyNote",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold
                 ),

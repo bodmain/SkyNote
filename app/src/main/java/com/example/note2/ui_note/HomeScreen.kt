@@ -4,11 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.example.note2.Screen
 import com.example.note2.components_ui.DeleteConfirmDialog
 import com.example.note2.components_ui.NoteFAB
@@ -28,17 +32,26 @@ fun HomeScreen(
     onNoteClick: (Int) -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
-    val listState = rememberLazyListState()
 
     Scaffold(
         topBar = {
-            NotesTopBar(
-                onToggleSearch = { viewModel.toggleSearch() },
-                onProfileClick = onNavigateToProfile
-            )
+            if (!viewModel.isSearchActive) {
+                NotesTopBar(
+                    onToggleSearch = { viewModel.toggleSearch() },
+                    onCalendarClick = { /* Handle calendar click */ },
+                    onNotificationClick = { /* Handle notification click */ },
+                    onMenuClick = { onNavigateToProfile() }
+                )
+            }
         },
         floatingActionButton = {
-            NoteFAB(lazyListState = listState, onAddNote = onAddNote)
+            if (!viewModel.isSearchActive) {
+                NoteFAB(
+                    onAddNote = onAddNote,
+                    onAddChecklist = { /* ... */ },
+                    onAddPhoto = { /* ... */ }
+                )
+            }
         }
     ) { innerPadding ->
 
@@ -60,12 +73,17 @@ fun HomeScreen(
                     onEditNote(it)
                 },
                 onDeleteClick = { viewModel.showDeleteDialog(it) },
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.fillMaxSize()
             )
         } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.padding(innerPadding)
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalItemSpacing = 12.dp
             ) {
                 items(viewModel.notes) { note ->
                     NoteItem(

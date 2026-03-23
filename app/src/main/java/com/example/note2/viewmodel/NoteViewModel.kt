@@ -11,6 +11,9 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class NoteViewModel(private val dao: NoteDao) : ViewModel() {
 
@@ -31,22 +34,21 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         startObservingNotes()
     }
 
-    // Hàm này dùng để bắt đầu lắng nghe note của user hiện tại
     fun startObservingNotes() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
-            notesJob?.cancel() // Huỷ lắng nghe cũ nếu có
+            notesJob?.cancel()
             notesJob = viewModelScope.launch {
                 dao.getNotesByUser(userId).collectLatest { listOfNotes ->
                     notes = listOfNotes
                 }
             }
         } else {
-            notes = emptyList() // Nếu không có user, xóa danh sách
+            notes = emptyList()
         }
     }
 
-    // Hàm xóa dữ liệu khi Logout
+
     fun clearData() {
         notesJob?.cancel()
         notesJob = null
@@ -79,7 +81,7 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
 
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
         
-        // Đảm bảo luôn lắng nghe đúng user trước khi add
+
         if (notesJob == null || !notesJob!!.isActive) {
             startObservingNotes()
         }
@@ -96,6 +98,7 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         }
     }
 
+//update
     fun updateNote(note: NoteModel) {
         viewModelScope.launch {
             val updatedNote = note.copy(timestamp = System.currentTimeMillis())

@@ -7,13 +7,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.note2.data.NoteDao
 import com.example.note2.model.NoteModel
+import com.example.note2.model.NotificationModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 class NoteViewModel(private val dao: NoteDao) : ViewModel() {
 
@@ -29,6 +33,8 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         private set
 
     private var notesJob: Job? = null
+    private val _notifications = MutableStateFlow<List<NotificationModel>>(emptyList())
+    val notifications: StateFlow<List<NotificationModel>> = _notifications
 
     init {
         startObservingNotes()
@@ -127,13 +133,16 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
     fun showDeleteDialog(note: NoteModel) {
         noteToDelete = note
     }
+// notification
 
-    fun updateNoteColor(noteId: Int, newColor: Long) {
-        viewModelScope.launch {
-            val noteToUpdate = notes.find { it.id == noteId }
-            noteToUpdate?.let {
-                dao.update(it.copy(color = newColor))
-            }
-        }
+    fun addNotification(title: String, message: String) {
+        val newNotification = NotificationModel(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            message = message
+        )
+
+
+        _notifications.value = listOf(newNotification) + _notifications.value
     }
 }

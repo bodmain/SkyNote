@@ -67,31 +67,31 @@ fun NoteDetailScreen(
                 }
             )
         },
-        bottomBar = {
-            BottomAppBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.8f),
-                contentPadding = PaddingValues(horizontal = 8.dp),
-                actions = {
-                    IconButton(onClick = {  }) {
-
-                        Icon(Icons.Default.Palette, contentDescription = "Chọn màu")
-                    }
-                    IconButton(onClick = { /* */ }) {
-                        Icon(Icons.Default.Image, contentDescription = "Thêm ảnh")
-                    }
-                    IconButton(onClick = { /*  */ }) {
-                        Icon(Icons.Default.FormatListBulleted, contentDescription = "Danh sách")
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "18 tháng 3 | ${description.length} ký tự",
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
-                }
-            )
-        }
+//        bottomBar = {
+//            BottomAppBar(
+//                containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.8f),
+//                contentPadding = PaddingValues(horizontal = 8.dp),
+//                actions = {
+//                    IconButton(onClick = {  }) {
+//
+//                        Icon(Icons.Default.Palette, contentDescription = "Chọn màu")
+//                    }
+//                    IconButton(onClick = { /* */ }) {
+//                        Icon(Icons.Default.Image, contentDescription = "Thêm ảnh")
+//                    }
+//                    IconButton(onClick = { /*  */ }) {
+//                        Icon(Icons.Default.FormatListBulleted, contentDescription = "Danh sách")
+//                    }
+//
+//                    Spacer(modifier = Modifier.weight(1f))
+//                    Text(
+//                        text = "18 tháng 3 | ${description.length} ký tự",
+//                        style = MaterialTheme.typography.labelSmall,
+//                        modifier = Modifier.padding(end = 16.dp)
+//                    )
+//                }
+//            )
+//        }
     ) { paddingValues ->
         Column(
             modifier = Modifier

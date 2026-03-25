@@ -1,6 +1,7 @@
 package com.example.note2
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -11,14 +12,16 @@ import androidx.room.Room
 import com.example.note2.auth.AuthRepository
 import com.example.note2.auth.AuthViewModel
 import com.example.note2.components_ui.LoginScreen
+import com.example.note2.components_ui.NotificationScreen
 import com.example.note2.components_ui.ProfileScreen
 import com.example.note2.components_ui.RegisterScreen
 import com.example.note2.components_ui.SplashScreen
 import com.example.note2.data.AppDatabase
 import com.example.note2.ui.NoteDetailScreen
-import com.example.note2.ui_note.HomeScreen
+import com.example.note2.ui_Screen.HomeScreen
 import com.example.note2.viewmodel.NoteViewModel
 import com.example.note2.ui.theme.Note2Theme
+import com.google.firebase.messaging.FirebaseMessaging
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -29,6 +32,7 @@ sealed class Screen(val route: String) {
         fun createRoute(noteId: Int) = "detail/$noteId"
     }
     object Profile : Screen("profile")
+    object Notification : Screen("notification")
 }
 
 class MainActivity : ComponentActivity() {
@@ -49,6 +53,12 @@ class MainActivity : ComponentActivity() {
 
         val authRepository = AuthRepository()
         val authViewModel = AuthViewModel(authRepository)
+
+        FirebaseMessaging.getInstance().token
+            .addOnSuccessListener { token ->
+                Log.d("FCM", "Token: $token")
+            }
+
 
         setContent {
             Note2Theme {
@@ -111,6 +121,7 @@ class MainActivity : ComponentActivity() {
                     //  Home
                     composable(Screen.Home.route) {
                         HomeScreen(
+                            navController = navController,
                             viewModel = noteViewModel,
                             onAddNote = {
                                 navController.navigate(Screen.Detail.createRoute(-1))
@@ -158,6 +169,11 @@ class MainActivity : ComponentActivity() {
                                 navController.popBackStack()
                             }
                         )
+                    }
+                    //notification
+                    composable(Screen.Notification.route) {
+                        NotificationScreen(viewModel = noteViewModel)
+
                     }
                 }
             }

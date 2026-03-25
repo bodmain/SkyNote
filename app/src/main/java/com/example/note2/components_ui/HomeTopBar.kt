@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.note2.Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +52,9 @@ fun NotesTopBar(
             }
 
             // Thông báo
-            IconButton(onClick = onNotificationClick) {
+            IconButton(
+                onClick = onNotificationClick
+            ) {
                 Icon(
                     imageVector = Icons.Outlined.Notifications,
                     contentDescription = "Notifications",

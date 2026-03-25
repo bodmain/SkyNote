@@ -1,5 +1,9 @@
 package com.example.note2
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -8,7 +12,6 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import androidx.room.Room
 import com.example.note2.auth.AuthRepository
 import com.example.note2.auth.AuthViewModel
 import com.example.note2.components_ui.LoginScreen
@@ -17,11 +20,14 @@ import com.example.note2.components_ui.ProfileScreen
 import com.example.note2.components_ui.RegisterScreen
 import com.example.note2.components_ui.SplashScreen
 import com.example.note2.data.AppDatabase
+import com.example.note2.data.NoteRepository
+import com.example.note2.receiver.DailyNotificationReceiver
 import com.example.note2.ui.NoteDetailScreen
 import com.example.note2.ui_Screen.HomeScreen
 import com.example.note2.viewmodel.NoteViewModel
 import com.example.note2.ui.theme.Note2Theme
 import com.google.firebase.messaging.FirebaseMessaging
+import java.util.*
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
@@ -40,16 +46,9 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
 
-        val db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java,
-            "note_database"
-        )
-            .fallbackToDestructiveMigration()
-            .build()
-
-        val dao = db.noteDao()
-        val noteViewModel = NoteViewModel(dao)
+        val db = AppDatabase.getDatabase(applicationContext)
+        val repository = NoteRepository(db.noteDao(), db.notificationDao())
+        val noteViewModel = NoteViewModel(repository)
 
         val authRepository = AuthRepository()
         val authViewModel = AuthViewModel(authRepository)
@@ -59,6 +58,8 @@ class MainActivity : ComponentActivity() {
                 Log.d("FCM", "Token: $token")
             }
 
+        // Đặt lịch thông báo hàng ngày
+        scheduleDailyNotification(this)
 
         setContent {
             Note2Theme {
@@ -172,11 +173,40 @@ class MainActivity : ComponentActivity() {
                     }
                     //notification
                     composable(Screen.Notification.route) {
-                        NotificationScreen(viewModel = noteViewModel)
+                        NotificationScreen(viewModel = noteViewModel, onBack = {
+                            navController.popBackStack()
+                        })
 
                     }
                 }
             }
         }
+    }
+
+    private fun scheduleDailyNotification(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, DailyNotificationReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context, 1001, intent, 
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, 7)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+
+            if (before(Calendar.getInstance())) {
+                add(Calendar.DATE, 1)
+            }
+        }
+
+        alarmManager.setInexactRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
     }
 }

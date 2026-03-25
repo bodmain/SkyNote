@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.note2.data.NoteDao
+import com.example.note2.data.NoteRepository
 import com.example.note2.model.NoteModel
 import com.example.note2.model.NotificationModel
 import com.google.firebase.auth.FirebaseAuth
@@ -14,12 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.UUID
 
-class NoteViewModel(private val dao: NoteDao) : ViewModel() {
+class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     var notes by mutableStateOf<List<NoteModel>>(emptyList())
         private set
@@ -38,6 +34,7 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
 
     init {
         startObservingNotes()
+        startObservingNotifications()
     }
 
     fun startObservingNotes() {
@@ -45,7 +42,7 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         if (userId != null) {
             notesJob?.cancel()
             notesJob = viewModelScope.launch {
-                dao.getNotesByUser(userId).collectLatest { listOfNotes ->
+                repository.getNotesByUser(userId).collectLatest { listOfNotes ->
                     notes = listOfNotes
                 }
             }
@@ -54,6 +51,14 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         }
     }
 
+    fun startObservingNotifications() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        viewModelScope.launch {
+            repository.getNotificationsByUser(userId).collectLatest { list ->
+                _notifications.value = list
+            }
+        }
+    }
 
     fun clearData() {
         notesJob?.cancel()
@@ -63,7 +68,6 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         isSearchActive = false
     }
 
-    // search note
     fun filterNotes(text: String) {
         searchText = text
         searchResults = if (text.isBlank()) {
@@ -81,16 +85,9 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
         }
     }
 
-    // add note
     fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF) {
         if (title.isBlank() && description.isBlank()) return
-
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        
-
-        if (notesJob == null || !notesJob!!.isActive) {
-            startObservingNotes()
-        }
 
         viewModelScope.launch {
             val newNote = NoteModel(
@@ -100,22 +97,19 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
                 color = color,
                 userId = userId
             )
-            dao.insert(newNote)
+            repository.insertNote(newNote)
         }
     }
 
-//update
     fun updateNote(note: NoteModel) {
         viewModelScope.launch {
-            val updatedNote = note.copy(timestamp = System.currentTimeMillis())
-            dao.update(updatedNote)
+            repository.updateNote(note.copy(timestamp = System.currentTimeMillis()))
         }
     }
 
-    // delele note
     fun deleteNote(note: NoteModel) {
         viewModelScope.launch {
-            dao.delete(note)
+            repository.deleteNote(note)
         }
     }
 
@@ -133,16 +127,16 @@ class NoteViewModel(private val dao: NoteDao) : ViewModel() {
     fun showDeleteDialog(note: NoteModel) {
         noteToDelete = note
     }
-// notification
 
     fun addNotification(title: String, message: String) {
-        val newNotification = NotificationModel(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            message = message
-        )
-
-
-        _notifications.value = listOf(newNotification) + _notifications.value
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        viewModelScope.launch {
+            val newNotification = NotificationModel(
+                title = title,
+                message = message,
+                userId = userId
+            )
+            repository.insertNotification(newNotification)
+        }
     }
 }

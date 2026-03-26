@@ -68,11 +68,19 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
     implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
-    implementation(platform("com.google.firebase:firebase-bom:34.10.0"))
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-messaging:23.4.1")
 
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
+    
+    // Coil for image loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

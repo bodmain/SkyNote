@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.note2.data.AppDatabase
 import com.example.note2.model.NotificationModel
@@ -24,6 +25,8 @@ class MyFirebaseService : FirebaseMessagingService() {
         val title = message.notification?.title ?: message.data["title"] ?: "Thông báo mới"
         val body = message.notification?.body ?: message.data["body"] ?: "Bạn có một thông báo từ Note App"
 
+        Log.d("FCM_SERVICE", "Nhận thông báo: $title")
+
         // 1. Hiển thị thông báo lên thanh trạng thái
         showNotification(title, body)
 
@@ -32,17 +35,24 @@ class MyFirebaseService : FirebaseMessagingService() {
     }
 
     private fun saveNotificationToDatabase(title: String, body: String) {
+        // Cố gắng lấy userId, nếu null thì đợi 1 chút hoặc dùng unknown (nhưng ưu tiên có user)
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown"
         val database = AppDatabase.getDatabase(applicationContext)
         
         serviceScope.launch {
-            val notification = NotificationModel(
-                title = title,
-                message = body,
-                timestamp = System.currentTimeMillis(),
-                userId = userId
-            )
-            database.notificationDao().insert(notification)
+            try {
+                val notification = NotificationModel(
+                    title = title,
+                    message = body,
+                    timestamp = System.currentTimeMillis(),
+                    userId = userId,
+                    isRead = false
+                )
+                database.notificationDao().insert(notification)
+                Log.d("FCM_SERVICE", "Đã lưu thông báo vào DB cho user: $userId")
+            } catch (e: Exception) {
+                Log.e("FCM_SERVICE", "Lỗi khi lưu DB: ${e.message}")
+            }
         }
     }
 
@@ -84,5 +94,6 @@ class MyFirebaseService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
+        Log.d("FCM_SERVICE", "Token mới: $token")
     }
 }

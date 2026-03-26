@@ -24,9 +24,15 @@ class NoteRepository(
     suspend fun insertNotification(notification: NotificationModel) = 
         notificationDao.insert(notification)
         
+    suspend fun updateNotification(notification: NotificationModel) = 
+        notificationDao.update(notification)
+
     suspend fun deleteNotification(notification: NotificationModel) = 
         notificationDao.delete(notification)
         
     suspend fun deleteAllNotifications(userId: String) = 
         notificationDao.deleteAllNotifications(userId)
+
+    suspend fun markAllAsRead(userId: String) = 
+        notificationDao.markAllAsRead(userId)
 }

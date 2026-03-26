@@ -9,5 +9,6 @@ data class NotificationModel(
     val title: String,
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val userId: String // Để lọc thông báo theo từng user
+    val userId: String,
+    val isRead: Boolean = false // Mặc định là chưa xem
 )

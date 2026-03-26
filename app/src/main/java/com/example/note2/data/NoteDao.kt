@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.Flow
 interface NoteDao {
     @Query("SELECT * FROM notes WHERE userId = :userId")
     fun getNotesByUser(userId: String): Flow<List<NoteModel>>
+
+    @Query("SELECT * FROM notes WHERE userId = :userId")
+    suspend fun getNotesByUserList(userId: String): List<NoteModel>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(noteModel: NoteModel)
 
@@ -21,4 +25,7 @@ interface NoteDao {
 
     @Delete
     suspend fun delete(noteModel: NoteModel)
+
+    @Query("UPDATE notes SET userId = :newUserId WHERE userId = 'guest'")
+    suspend fun migrateGuestNotes(newUserId: String)
 }

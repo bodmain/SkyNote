@@ -14,10 +14,8 @@ import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.note2.auth.AuthRepository
 import com.example.note2.auth.AuthViewModel
-import com.example.note2.components_ui.LoginScreen
 import com.example.note2.components_ui.NotificationScreen
 import com.example.note2.components_ui.ProfileScreen
-import com.example.note2.components_ui.RegisterScreen
 import com.example.note2.components_ui.SplashScreen
 import com.example.note2.data.AppDatabase
 import com.example.note2.data.NoteRepository
@@ -31,8 +29,6 @@ import java.util.*
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
-    object Login : Screen("login")
-    object Register : Screen("register")
     object Home : Screen("home")
     object Detail : Screen("detail/{noteId}") {
         fun createRoute(noteId: Int) = "detail/$noteId"
@@ -58,7 +54,6 @@ class MainActivity : ComponentActivity() {
                 Log.d("FCM", "Token: $token")
             }
 
-        // Đặt lịch thông báo hàng ngày
         scheduleDailyNotification(this)
 
         setContent {
@@ -69,61 +64,21 @@ class MainActivity : ComponentActivity() {
                     navController = navController,
                     startDestination = Screen.Splash.route
                 ) {
-
-                    //  Splash
                     composable(Screen.Splash.route) {
                         SplashScreen(
-                            onNavigate = { route ->
-                                if (route == Screen.Home.route) {
-                                    noteViewModel.startObservingNotes()
-                                }
-
-                                navController.navigate(route) {
+                            onNavigate = {
+                                navController.navigate(Screen.Home.route) {
                                     popUpTo(Screen.Splash.route) { inclusive = true }
                                 }
                             }
                         )
                     }
 
-                    //  Login
-                    composable(Screen.Login.route) {
-                        LoginScreen(
-                            authViewModel = authViewModel,
-                            onLoginSuccess = {
-                                noteViewModel.startObservingNotes()
-
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
-                                }
-                            },
-                            onNavigateToRegister = {
-                                navController.navigate(Screen.Register.route)
-                            }
-                        )
-                    }
-
-                    //  Register
-                    composable(Screen.Register.route) {
-                        RegisterScreen(
-                            authViewModel = authViewModel,
-                            onRegisterSuccess = {
-                                noteViewModel.startObservingNotes()
-
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(Screen.Login.route) { inclusive = true }
-                                }
-                            },
-                            onNavigateToLogin = {
-                                navController.popBackStack()
-                            }
-                        )
-                    }
-
-                    //  Home
                     composable(Screen.Home.route) {
                         HomeScreen(
                             navController = navController,
                             viewModel = noteViewModel,
+                            authViewModel = authViewModel,
                             onAddNote = {
                                 navController.navigate(Screen.Detail.createRoute(-1))
                             },
@@ -139,44 +94,36 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    //  Detail
                     composable(
                         route = Screen.Detail.route,
                         arguments = listOf(navArgument("noteId") { type = NavType.IntType })
                     ) { backStackEntry ->
                         val noteId = backStackEntry.arguments?.getInt("noteId") ?: -1
-
                         NoteDetailScreen(
                             noteId = noteId,
                             viewModel = noteViewModel,
-                            onBack = {
-                                navController.popBackStack()
-                            }
+                            onBack = { navController.popBackStack() }
                         )
                     }
-                    //profile
+
                     composable(Screen.Profile.route) {
                         ProfileScreen(
                             authViewModel = authViewModel,
                             onLogout = {
                                 authViewModel.logout()
                                 noteViewModel.clearData()
-
-                                navController.navigate(Screen.Login.route) {
+                                navController.navigate(Screen.Home.route) {
                                     popUpTo(0)
                                 }
                             },
-                            onBack = {
-                                navController.popBackStack()
-                            }
+                            onBack = { navController.popBackStack() }
                         )
                     }
-                    //notification
+
                     composable(Screen.Notification.route) {
                         NotificationScreen(viewModel = noteViewModel, onBack = {
                             navController.popBackStack()
                         })
-
                     }
                 }
             }
@@ -193,10 +140,9 @@ class MainActivity : ComponentActivity() {
 
         val calendar = Calendar.getInstance().apply {
             timeInMillis = System.currentTimeMillis()
-            set(Calendar.HOUR_OF_DAY, 7)
-            set(Calendar.MINUTE, 0)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 23)
             set(Calendar.SECOND, 0)
-
             if (before(Calendar.getInstance())) {
                 add(Calendar.DATE, 1)
             }

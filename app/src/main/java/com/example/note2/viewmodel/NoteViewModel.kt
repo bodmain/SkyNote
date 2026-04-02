@@ -12,11 +12,15 @@ import com.example.note2.model.NotificationModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withTimeout
+
+enum class SyncState { IDLE, SYNCING, SUCCESS, ERROR }
 
 class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
@@ -26,6 +30,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     var notes by mutableStateOf<List<NoteModel>>(emptyList())
         private set
+    
+    var syncState by mutableStateOf(SyncState.IDLE)
+        private set
+
     var isSearchActive by mutableStateOf(false)
         private set
     var searchText by mutableStateOf("")
@@ -61,6 +69,8 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
         notificationsJob?.cancel()
         notificationsJob = viewModelScope.launch {
+            val twentyFourHoursAgo = System.currentTimeMillis() - 86400000
+            repository.deleteOldNotifications(twentyFourHoursAgo)
             repository.getNotificationsByUser(userId).collectLatest { list ->
                 _notifications.value = list
             }
@@ -68,29 +78,51 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
     fun syncAllNotes() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            Log.e("SYNC", "Chưa đăng nhập, không thể đồng bộ")
+            syncState = SyncState.ERROR
+            viewModelScope.launch { delay(2000); syncState = SyncState.IDLE }
+            return
+        }
+        val userId = user.uid
+        if (syncState == SyncState.SYNCING) return
+
         viewModelScope.launch {
+            syncState = SyncState.SYNCING
+            Log.d("SYNC", "Bắt đầu đồng bộ cho: $userId. Ghi chú: ${notes.size}")
             try {
                 val localNotes = notes
-                val batch = firestore.batch()
-                
-                localNotes.forEach { note ->
-                    val docRef = firestore.collection("users").document(userId)
-                        .collection("notes").document(note.id.toString())
-                    
-                    val noteData = hashMapOf(
-                        "title" to note.title,
-                        "description" to note.description,
-                        "timestamp" to note.timestamp,
-                        "color" to note.color,
-                        "userId" to userId
-                    )
-                    batch.set(docRef, noteData)
+                if (localNotes.isEmpty()) {
+                    syncState = SyncState.SUCCESS
+                } else {
+                    withTimeout(30000L) {
+                        val batch = firestore.batch()
+                        localNotes.forEach { note ->
+                            val docRef = firestore.collection("users").document(userId)
+                                .collection("notes").document(note.id.toString())
+                            
+                            val noteData = hashMapOf(
+                                "title" to note.title,
+                                "description" to note.description,
+                                "timestamp" to note.timestamp,
+                                "color" to note.color,
+                                "userId" to userId,
+                                "imagePath" to note.imagePath
+                            )
+                            batch.set(docRef, noteData)
+                        }
+                        batch.commit().await()
+                    }
+                    syncState = SyncState.SUCCESS
+                    Log.d("SYNC", "Đồng bộ Firestore thành công")
                 }
-                batch.commit().await()
-                Log.d("SYNC", "Đồng bộ thành công ${localNotes.size} ghi chú")
             } catch (e: Exception) {
                 Log.e("SYNC", "Lỗi đồng bộ: ${e.message}")
+                syncState = SyncState.ERROR
+            } finally {
+                delay(2000)
+                syncState = SyncState.IDLE
             }
         }
     }
@@ -106,10 +138,16 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         startObservingNotifications()
     }
 
-    fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF) {
+    fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF, imagePath: String? = null) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
         viewModelScope.launch {
-            val note = NoteModel(title = title, description = description, color = color, userId = userId)
+            val note = NoteModel(
+                title = title, 
+                description = description, 
+                color = color, 
+                userId = userId,
+                imagePath = imagePath
+            )
             repository.insertNote(note)
             if (userId != GUEST_USER_ID) {
                 syncNoteToFirestore(userId, note)
@@ -124,11 +162,12 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 "description" to note.description,
                 "timestamp" to note.timestamp,
                 "color" to note.color,
-                "userId" to uid
+                "userId" to uid,
+                "imagePath" to note.imagePath
             )
             firestore.collection("users").document(uid)
                 .collection("notes").document(note.id.toString())
-                .set(noteData).await()
+                .set(noteData)
         } catch (e: Exception) {
             Log.e("SYNC", "Error syncing note: ${e.message}")
         }
@@ -138,9 +177,13 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         repository.deleteNote(note)
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
-            firestore.collection("users").document(userId)
-                .collection("notes").document(note.id.toString())
-                .delete().await()
+            try {
+                firestore.collection("users").document(userId)
+                    .collection("notes").document(note.id.toString())
+                    .delete()
+            } catch (e: Exception) {
+                Log.e("SYNC", "Error deleting from firestore: ${e.message}")
+            }
         }
     }
     
@@ -200,8 +243,4 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         viewModelScope.launch { repository.deleteNotification(notification) }
     }
 
-    fun deleteAllNotifications() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
-        viewModelScope.launch { repository.deleteAllNotifications(userId) }
-    }
 }

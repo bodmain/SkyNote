@@ -27,15 +27,14 @@ class MyFirebaseService : FirebaseMessagingService() {
 
         Log.d("FCM_SERVICE", "Nhận thông báo: $title")
 
-        // 1. Hiển thị thông báo lên thanh trạng thái
+        // Hiển thị thông báo lên thanh trạng thái
         showNotification(title, body)
 
-        // 2. Lưu vào Database Room
+        //  Lưu vào Database Room
         saveNotificationToDatabase(title, body)
     }
 
     private fun saveNotificationToDatabase(title: String, body: String) {
-        // Cố gắng lấy userId, nếu null thì đợi 1 chút hoặc dùng unknown (nhưng ưu tiên có user)
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown"
         val database = AppDatabase.getDatabase(applicationContext)
         

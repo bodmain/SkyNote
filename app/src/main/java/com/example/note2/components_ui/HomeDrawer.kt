@@ -1,31 +1,59 @@
 package com.example.note2.components_ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.note2.viewmodel.SyncState
 import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun HomeDrawerContent(
     currentUser: FirebaseUser?,
+    syncState: SyncState = SyncState.IDLE, // Thêm syncState
     onLoginClick: () -> Unit,
     onAllNotesClick: () -> Unit,
     onSyncClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onCloseDrawer: () -> Unit
 ) {
+    // Hiệu ứng xoay icon khi đang sync
+    val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    // Hiệu ứng đổi màu icon
+    val iconColor by animateColorAsState(
+        targetValue = when (syncState) {
+            SyncState.SYNCING -> MaterialTheme.colorScheme.primary
+            SyncState.SUCCESS -> Color(0xFF4CAF50)
+            SyncState.ERROR -> MaterialTheme.colorScheme.error
+            else -> if (currentUser != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+        },
+        label = "icon_color"
+    )
+
     ModalDrawerSheet {
         // Header của Drawer
         Column(
@@ -35,7 +63,6 @@ fun HomeDrawerContent(
                 .padding(24.dp)
         ) {
             if (currentUser != null) {
-                // Hiển thị ảnh đại diện Google
                 AsyncImage(
                     model = currentUser.photoUrl,
                     contentDescription = "Profile picture",
@@ -57,7 +84,6 @@ fun HomeDrawerContent(
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
-                // Guest Mode
                 Box(
                     modifier = Modifier
                         .size(64.dp)
@@ -90,7 +116,6 @@ fun HomeDrawerContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Menu items
         NavigationDrawerItem(
             label = { Text("Tất cả ghi chú") },
             selected = true,
@@ -103,19 +128,33 @@ fun HomeDrawerContent(
         )
 
         NavigationDrawerItem(
-            label = { Text("Đồng bộ hóa") },
+            label = {
+                Text(
+                    when (syncState) {
+                        SyncState.SYNCING -> "Đang đồng bộ..."
+                        SyncState.SUCCESS -> "Đã đồng bộ thành công"
+                        SyncState.ERROR -> "Lỗi đồng bộ"
+                        else -> "Đồng bộ hóa"
+                    }
+                )
+            },
             selected = false,
             onClick = {
-                if (currentUser != null) {
+                if (currentUser != null && syncState == SyncState.IDLE) {
                     onSyncClick()
-                    onCloseDrawer()
                 }
             },
-            icon = { Icon(Icons.Default.Sync, contentDescription = null) },
+            icon = {
+                Icon(
+                    imageVector = if (syncState == SyncState.SUCCESS) Icons.Default.CheckCircle else Icons.Default.Sync,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = if (syncState == SyncState.SYNCING) Modifier.rotate(rotation) else Modifier
+                )
+            },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
             colors = NavigationDrawerItemDefaults.colors(
                 unselectedTextColor = if (currentUser != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                unselectedIconColor = if (currentUser != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
             )
         )
 

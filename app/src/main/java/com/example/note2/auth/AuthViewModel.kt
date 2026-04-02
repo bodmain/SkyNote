@@ -38,10 +38,10 @@ class AuthViewModel(
                 _currentUser.value = user
                 
                 if (user != null) {
-                    // 1. Migrate dữ liệu guest -> user UID trong Room
+                    // Migrate dữ liệu guest -> user UID trong Room
                     noteDao.migrateGuestNotes(user.uid)
                     
-                    // 2. Đồng bộ dữ liệu từ Room lên Firestore
+                    //  Đồng bộ dữ liệu từ Room lên Firestore
                     syncNotesToFirestore(user.uid, noteDao)
                     
                     _uiState.value = AuthUiState(isSuccess = true)
@@ -77,7 +77,6 @@ class AuthViewModel(
             
             batch.commit().await()
         } catch (e: Exception) {
-            // Log lỗi sync nếu cần
         }
     }
 

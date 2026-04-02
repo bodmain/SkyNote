@@ -48,9 +48,6 @@ fun NotificationScreen(
                         IconButton(onClick = { viewModel.markAllNotificationsAsRead() }) {
                             Icon(Icons.Default.DoneAll, contentDescription = "Đã xem tất cả")
                         }
-                        IconButton(onClick = { viewModel.deleteAllNotifications() }) {
-                            Icon(Icons.Default.NotificationsOff, contentDescription = "Xóa tất cả")
-                        }
                     }
                 }
             )
@@ -98,7 +95,6 @@ fun NotificationItem(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    // Nền hơi xanh nếu chưa đọc
     val backgroundColor = if (notification.isRead) Color.Transparent else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
     
     Row(
@@ -109,7 +105,6 @@ fun NotificationItem(
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Dấu chấm xanh nếu chưa đọc
         if (!notification.isRead) {
             Box(
                 modifier = Modifier

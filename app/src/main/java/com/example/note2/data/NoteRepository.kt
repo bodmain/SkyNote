@@ -35,4 +35,7 @@ class NoteRepository(
 
     suspend fun markAllAsRead(userId: String) = 
         notificationDao.markAllAsRead(userId)
+
+    suspend fun deleteOldNotifications(expiryTime: Long) = 
+        notificationDao.deleteOldNotifications(expiryTime)
 }

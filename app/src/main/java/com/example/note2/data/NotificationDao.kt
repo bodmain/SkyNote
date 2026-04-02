@@ -28,4 +28,7 @@ interface NotificationDao {
 
     @Query("UPDATE notifications SET isRead = 1 WHERE userId = :userId AND isRead = 0")
     suspend fun markAllAsRead(userId: String)
+
+    @Query("DELETE FROM notifications WHERE timestamp < :expiryTime")
+    suspend fun deleteOldNotifications(expiryTime: Long)
 }

@@ -22,10 +22,10 @@ class DailyNotificationReceiver : BroadcastReceiver() {
         val title = "Xin Chào Buổi Sáng! ☀️"
         val message = "Chúc bạn một buổi sáng vui vẻ, hãy quay lại ứng dụng để đọc lại những dòng note và viết những note mới nhé!"
 
-        // 1. Hiển thị thông báo lên thanh trạng thái
+        //  Hiển thị thông báo lên thanh trạng thái
         showNotification(context, title, message)
 
-        // 2. Lưu vào Database
+        //  Lưu vào Database
         saveToDatabase(context, title, message)
     }
 

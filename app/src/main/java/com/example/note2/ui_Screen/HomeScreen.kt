@@ -1,15 +1,13 @@
 package com.example.note2.ui_Screen
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -25,6 +23,7 @@ import com.example.note2.components_ui.NoteSearchBar
 import com.example.note2.components_ui.NotesTopBar
 import com.example.note2.components_ui.HomeDrawerContent
 import com.example.note2.data.AppDatabase
+import com.example.note2.utils.FileHelper
 import kotlinx.coroutines.launch
 
 
@@ -33,7 +32,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen(
     navController: NavController,
     viewModel: NoteViewModel,
-    authViewModel: AuthViewModel, // Thêm AuthViewModel
+    authViewModel: AuthViewModel,
     onAddNote: () -> Unit,
     onEditNote: (NoteModel) -> Unit,
     onNoteClick: (Int) -> Unit,
@@ -42,11 +41,27 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            val path = FileHelper.saveImageToInternalStorage(context, it)
+            if (path != null) {
+
+                viewModel.addNote(
+                    title = "Ghi chú ảnh", 
+                    description = "", 
+                    imagePath = path
+                )
+            }
+        }
+    }
     
     val currentUser by authViewModel.currentUser.collectAsState()
     val authUiState by authViewModel.uiState.collectAsState()
 
-    // Theo dõi trạng thái đăng nhập để refresh dữ liệu
     LaunchedEffect(currentUser) {
         viewModel.startObservingNotes()
         viewModel.startObservingNotifications()
@@ -57,12 +72,15 @@ fun HomeScreen(
         drawerContent = {
             HomeDrawerContent(
                 currentUser = currentUser,
+                syncState = viewModel.syncState,
                 onLoginClick = { 
                     val db = AppDatabase.getDatabase(context)
                     authViewModel.signInWithGoogle(context, db.noteDao()) 
                 },
                 onAllNotesClick = { scope.launch { drawerState.close() } },
-                onSyncClick = { /* Firestore Sync đã được gọi trong AuthViewModel */ },
+                onSyncClick = { 
+                    viewModel.syncAllNotes() 
+                },
                 onSettingsClick = { onNavigateToProfile() },
                 onCloseDrawer = { scope.launch { drawerState.close() } }
             )
@@ -84,17 +102,16 @@ fun HomeScreen(
                     NoteFAB(
                         onAddNote = onAddNote,
                         onAddChecklist = { /* ... */ },
-                        onAddPhoto = { /* ... */ }
+                        onAddPhoto = { 
+                            photoPickerLauncher.launch("image/*")
+                        }
                     )
                 }
             }
         ) { innerPadding ->
             
-            // Hiển thị lỗi đăng nhập nếu có
             if (authUiState.errorMessage != null) {
-                LaunchedEffect(authUiState.errorMessage) {
-                    // Bạn có thể hiển thị Snackbar ở đây
-                }
+                // Hiển thị thông báo lỗi
             }
 
             viewModel.noteToDelete?.let {

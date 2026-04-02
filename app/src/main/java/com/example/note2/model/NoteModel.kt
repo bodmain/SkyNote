@@ -10,8 +10,6 @@ data class NoteModel(
     val description: String,
     val timestamp: Long = System.currentTimeMillis(),
     val color: Long = 0xFFFFFFFF,
-    val userId: String
+    val userId: String,
+    val imagePath: String? = null
 )
-
-
-

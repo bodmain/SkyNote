@@ -24,14 +24,14 @@ import com.google.firebase.auth.FirebaseUser
 @Composable
 fun HomeDrawerContent(
     currentUser: FirebaseUser?,
-    syncState: SyncState = SyncState.IDLE, // Thêm syncState
+    syncState: SyncState = SyncState.IDLE,
     onLoginClick: () -> Unit,
     onAllNotesClick: () -> Unit,
     onSyncClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onCloseDrawer: () -> Unit
 ) {
-    // Hiệu ứng xoay icon khi đang sync
+
     val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -43,7 +43,7 @@ fun HomeDrawerContent(
         label = "rotation"
     )
 
-    // Hiệu ứng đổi màu icon
+
     val iconColor by animateColorAsState(
         targetValue = when (syncState) {
             SyncState.SYNCING -> MaterialTheme.colorScheme.primary

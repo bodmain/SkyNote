@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -26,14 +27,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.example.note2.auth.AuthViewModel
+import com.google.firebase.auth.FirebaseUser
 
 @Composable
 fun ProfileScreen(
+    currentUser: FirebaseUser?,
     authViewModel: AuthViewModel,
     onLogout: () -> Unit,
     onBack: () -> Unit
@@ -54,53 +61,82 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        //  Avatar giả
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(Color.Gray)
-        )
+        if (currentUser != null) {
+            AsyncImage(
+                model = currentUser.photoUrl,
+                contentDescription = "Profile picture",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray),
+                contentScale = ContentScale.Crop
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = user?.email ?: "No Email",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        //  Logout Button
-        Button(
-            onClick = { showDialog = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Đăng xuất")
-        }
-    }
-
-    //  Dialog xác nhận
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("Xác nhận") },
-            text = { Text("Bạn có chắc muốn đăng xuất không?") },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDialog = false
-                    onLogout()
-                }) {
-                    Text("Đăng xuất")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showDialog = false
-                }) {
-                    Text("Hủy")
-                }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = currentUser.displayName ?: "Người dùng SkyNote",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = currentUser.email ?: "",
+                style = MaterialTheme.typography.bodySmall
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
+                )
             }
-        )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Chế độ Khách",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            //  Logout Button
+
+            Button(
+                onClick = { showDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Đăng xuất")
+            }
+        }
+
+        //  Dialog xác nhận
+        if (showDialog) {
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Xác nhận") },
+                text = { Text("Bạn có chắc muốn đăng xuất không?") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        onLogout()
+                    }) {
+                        Text("Đăng xuất")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                    }) {
+                        Text("Hủy")
+                    }
+                }
+            )
+        }
     }
 }

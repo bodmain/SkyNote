@@ -117,7 +117,9 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable(Screen.Profile.route) {
+                        val currentUser by authViewModel.currentUser.collectAsState()
                         ProfileScreen(
+                            currentUser = currentUser,
                             authViewModel = authViewModel,
                             onLogout = {
                                 authViewModel.logout()
@@ -150,7 +152,7 @@ class MainActivity : ComponentActivity() {
 
         val calendar = Calendar.getInstance().apply {
             timeInMillis = System.currentTimeMillis()
-            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.HOUR_OF_DAY, 9)
             set(Calendar.MINUTE, 23)
             set(Calendar.SECOND, 0)
             if (before(Calendar.getInstance())) {

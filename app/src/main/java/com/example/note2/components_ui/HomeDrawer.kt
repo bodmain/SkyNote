@@ -26,7 +26,7 @@ import com.example.note2.viewmodel.ThemeViewModel
 @Composable
 fun HomeDrawerContent(
     currentUser: FirebaseUser?,
-    syncState: SyncState = SyncState.IDLE, // Thêm syncState
+    syncState: SyncState = SyncState.IDLE,
     onLoginClick: () -> Unit,
     onAllNotesClick: () -> Unit,
     onSyncClick: () -> Unit,
@@ -34,8 +34,10 @@ fun HomeDrawerContent(
     onCloseDrawer: () -> Unit,
     themeViewModel: ThemeViewModel
 ) {
+
     val themeMode by themeViewModel.themeMode.collectAsState()
     val isDark = themeMode == 2
+
     val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -46,6 +48,7 @@ fun HomeDrawerContent(
         ),
         label = "rotation"
     )
+
 
     val iconColor by animateColorAsState(
         targetValue = when (syncState) {

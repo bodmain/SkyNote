@@ -80,7 +80,7 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
-    
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.androidx.datastore.preferences)
 }

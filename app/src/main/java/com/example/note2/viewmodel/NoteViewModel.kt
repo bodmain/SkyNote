@@ -30,7 +30,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     var notes by mutableStateOf<List<NoteModel>>(emptyList())
         private set
-    
+
     var syncState by mutableStateOf(SyncState.IDLE)
         private set
 

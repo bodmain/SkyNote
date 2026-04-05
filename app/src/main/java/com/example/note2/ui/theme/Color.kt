@@ -19,3 +19,10 @@ val NoteColors = listOf(
     Color(0xFFE0F2F1),
     Color(0xFFECEFF1)
 )
+val PrimaryLight = Color(0xFFF57C00)
+val OnPrimaryLight = Color(0xFFFFFFFF)
+val ContainerLight = Color(0xFFFFF3E0)
+//Color Dart
+val PrimaryDark = Color(0xFFFFB74D)
+val OnPrimaryDark = Color(0xFF3E2723)
+val ContainerDark = Color(0xFF121212)

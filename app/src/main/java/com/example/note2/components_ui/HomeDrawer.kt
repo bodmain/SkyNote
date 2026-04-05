@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.note2.viewmodel.SyncState
 import com.google.firebase.auth.FirebaseUser
+import com.example.note2.viewmodel.ThemeViewModel
+
 
 @Composable
 fun HomeDrawerContent(
@@ -29,9 +31,11 @@ fun HomeDrawerContent(
     onAllNotesClick: () -> Unit,
     onSyncClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onCloseDrawer: () -> Unit
+    onCloseDrawer: () -> Unit,
+    themeViewModel: ThemeViewModel
 ) {
-    // Hiệu ứng xoay icon khi đang sync
+    val themeMode by themeViewModel.themeMode.collectAsState()
+    val isDark = themeMode == 2
     val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -43,7 +47,6 @@ fun HomeDrawerContent(
         label = "rotation"
     )
 
-    // Hiệu ứng đổi màu icon
     val iconColor by animateColorAsState(
         targetValue = when (syncState) {
             SyncState.SYNCING -> MaterialTheme.colorScheme.primary
@@ -53,6 +56,7 @@ fun HomeDrawerContent(
         },
         label = "icon_color"
     )
+
 
     ModalDrawerSheet {
         // Header của Drawer
@@ -179,5 +183,38 @@ fun HomeDrawerContent(
             icon = { Icon(Icons.Default.Settings, contentDescription = null) },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        NavigationDrawerItem(
+            label = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Chế độ tối", style = MaterialTheme.typography.labelLarge)
+
+                    // Nút gạt Switch
+                    Switch(
+                        checked = isDark,
+                        onCheckedChange = { checked ->
+                            themeViewModel.toggleTheme(checked)
+                        }
+                    )
+                }
+            },
+            selected = false,
+            onClick = {
+
+                themeViewModel.toggleTheme(!isDark)
+            },
+            icon = {
+                Icon(
+                    imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                    contentDescription = null
+                )
+            },
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+        )
+
     }
 }

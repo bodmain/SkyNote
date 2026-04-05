@@ -24,6 +24,7 @@ import com.example.note2.components_ui.NotesTopBar
 import com.example.note2.components_ui.HomeDrawerContent
 import com.example.note2.data.AppDatabase
 import com.example.note2.utils.FileHelper
+import com.example.note2.viewmodel.ThemeViewModel
 import kotlinx.coroutines.launch
 
 
@@ -33,6 +34,7 @@ fun HomeScreen(
     navController: NavController,
     viewModel: NoteViewModel,
     authViewModel: AuthViewModel,
+    themeViewModel: ThemeViewModel,
     onAddNote: () -> Unit,
     onEditNote: (NoteModel) -> Unit,
     onNoteClick: (Int) -> Unit,
@@ -82,7 +84,8 @@ fun HomeScreen(
                     viewModel.syncAllNotes() 
                 },
                 onSettingsClick = { onNavigateToProfile() },
-                onCloseDrawer = { scope.launch { drawerState.close() } }
+                onCloseDrawer = { scope.launch { drawerState.close() } },
+                themeViewModel = themeViewModel
             )
         }
     ) {

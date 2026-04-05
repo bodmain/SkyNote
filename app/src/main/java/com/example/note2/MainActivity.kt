@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
@@ -24,6 +26,8 @@ import com.example.note2.ui.NoteDetailScreen
 import com.example.note2.ui_Screen.HomeScreen
 import com.example.note2.viewmodel.NoteViewModel
 import com.example.note2.ui.theme.Note2Theme
+import com.example.note2.ui.theme.ThemeManager
+import com.example.note2.viewmodel.ThemeViewModel
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.*
 
@@ -41,6 +45,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        val themeManager = ThemeManager(applicationContext)
+        val themeViewModel = ThemeViewModel(themeManager)
 
         val db = AppDatabase.getDatabase(applicationContext)
         val repository = NoteRepository(db.noteDao(), db.notificationDao())
@@ -57,12 +63,15 @@ class MainActivity : ComponentActivity() {
         scheduleDailyNotification(this)
 
         setContent {
-            Note2Theme {
+            val currentTheme by themeViewModel.themeMode.collectAsState()
+            Note2Theme(themeMode = currentTheme) {
                 val navController = rememberNavController()
+
 
                 NavHost(
                     navController = navController,
                     startDestination = Screen.Splash.route
+
                 ) {
                     composable(Screen.Splash.route) {
                         SplashScreen(
@@ -79,6 +88,7 @@ class MainActivity : ComponentActivity() {
                             navController = navController,
                             viewModel = noteViewModel,
                             authViewModel = authViewModel,
+                            themeViewModel = themeViewModel,
                             onAddNote = {
                                 navController.navigate(Screen.Detail.createRoute(-1))
                             },

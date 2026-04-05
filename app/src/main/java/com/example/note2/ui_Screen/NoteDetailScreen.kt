@@ -39,7 +39,6 @@ fun NoteDetailScreen(
             TopAppBar(
                 title = { },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    // Sửa lỗi: Sử dụng màu nền đặc thay vì Transparent để tránh ảnh đè lên nút
                     containerColor = Color(selectedColor)
                 ),
                 navigationIcon = {
@@ -74,10 +73,10 @@ fun NoteDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .imePadding() // Thêm đệm để tránh bàn phím che mất nội dung đang nhập
+                .imePadding()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Hiển thị ảnh trong chi tiết nếu có
+
             existingNote?.imagePath?.let { path ->
                 AsyncImage(
                     model = path,

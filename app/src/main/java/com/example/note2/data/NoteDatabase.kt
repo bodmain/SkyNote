@@ -11,7 +11,7 @@ import com.example.note2.model.NotificationModel
 
 @Database(
     entities = [NoteModel::class, NotificationModel::class],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

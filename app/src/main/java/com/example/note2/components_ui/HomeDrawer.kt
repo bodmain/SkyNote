@@ -39,22 +39,27 @@ fun HomeDrawerContent(
     val isDark = themeMode == 2
 
     val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "rotation"
-    )
+    
+    val rotation by if (syncState == SyncState.SYNCING) {
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "rotation"
+        )
+    } else {
+        remember { mutableStateOf(0f) }
+    }
 
 
     val iconColor by animateColorAsState(
         targetValue = when (syncState) {
             SyncState.SYNCING -> MaterialTheme.colorScheme.primary
-            SyncState.SUCCESS -> Color(0xFF4CAF50)
-            SyncState.ERROR -> MaterialTheme.colorScheme.error
+            SyncState.SUCCESS -> Color(0xFF4CAF50) // Green
+            SyncState.ERROR -> MaterialTheme.colorScheme.error // Red
             else -> if (currentUser != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
         },
         label = "icon_color"
@@ -62,7 +67,6 @@ fun HomeDrawerContent(
 
 
     ModalDrawerSheet {
-        // Header của Drawer
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -112,12 +116,6 @@ fun HomeDrawerContent(
                 ) {
                     Text("Đăng nhập bằng Google")
                 }
-                Text(
-                    text = "Đăng nhập để sao lưu dữ liệu",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
             }
         }
 
@@ -140,7 +138,7 @@ fun HomeDrawerContent(
                     when (syncState) {
                         SyncState.SYNCING -> "Đang đồng bộ..."
                         SyncState.SUCCESS -> "Đã đồng bộ thành công"
-                        SyncState.ERROR -> "Lỗi đồng bộ"
+                        SyncState.ERROR -> "Lỗi đồng bộ (Hết thời gian)"
                         else -> "Đồng bộ hóa"
                     }
                 )
@@ -152,11 +150,22 @@ fun HomeDrawerContent(
                 }
             },
             icon = {
+                // Tách biệt hoàn toàn modifier xoay
+                val rotateModifier = if (syncState == SyncState.SYNCING) {
+                    Modifier.rotate(rotation)
+                } else {
+                    Modifier
+                }
+
                 Icon(
-                    imageVector = if (syncState == SyncState.SUCCESS) Icons.Default.CheckCircle else Icons.Default.Sync,
+                    imageVector = when (syncState) {
+                        SyncState.SUCCESS -> Icons.Default.CheckCircle
+                        SyncState.ERROR -> Icons.Default.Error
+                        else -> Icons.Default.Sync
+                    },
                     contentDescription = null,
                     tint = iconColor,
-                    modifier = if (syncState == SyncState.SYNCING) Modifier.rotate(rotation) else Modifier
+                    modifier = rotateModifier
                 )
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
@@ -195,8 +204,6 @@ fun HomeDrawerContent(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(text = "Chế độ tối", style = MaterialTheme.typography.labelLarge)
-
-                    // Nút gạt Switch
                     Switch(
                         checked = isDark,
                         onCheckedChange = { checked ->
@@ -206,10 +213,7 @@ fun HomeDrawerContent(
                 }
             },
             selected = false,
-            onClick = {
-
-                themeViewModel.toggleTheme(!isDark)
-            },
+            onClick = { themeViewModel.toggleTheme(!isDark) },
             icon = {
                 Icon(
                     imageVector = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
@@ -218,6 +222,5 @@ fun HomeDrawerContent(
             },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
-
     }
 }

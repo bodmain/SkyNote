@@ -1,4 +1,4 @@
-package com.example.note2.ui
+package com.example.note2.ui_Screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -23,7 +23,7 @@ import com.example.note2.viewmodel.NoteViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteDetailScreen(
-    noteId: Int,
+    noteId: String,
     viewModel: NoteViewModel,
     onBack: () -> Unit
 ) {
@@ -49,7 +49,7 @@ fun NoteDetailScreen(
                 actions = {
                     TextButton(onClick = {
                         if (title.isNotBlank() || description.isNotBlank() || existingNote?.imagePath != null) {
-                            if (noteId == -1) {
+                            if (noteId == "-1") {
                                 viewModel.addNote(title, description, selectedColor)
                             } else {
                                 existingNote?.let {
@@ -62,7 +62,7 @@ fun NoteDetailScreen(
                         Text(
                             "Xong", 
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary // Đảm bảo nút Xong có màu nổi bật
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -132,6 +132,6 @@ fun NoteDetailScreen(
     }
 
     LaunchedEffect(Unit) {
-        if (noteId == -1) focusRequester.requestFocus()
+        if (noteId == "-1") focusRequester.requestFocus()
     }
 }

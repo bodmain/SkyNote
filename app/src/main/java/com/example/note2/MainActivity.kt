@@ -22,8 +22,8 @@ import com.example.note2.components_ui.SplashScreen
 import com.example.note2.data.AppDatabase
 import com.example.note2.data.NoteRepository
 import com.example.note2.receiver.DailyNotificationReceiver
-import com.example.note2.ui.NoteDetailScreen
 import com.example.note2.ui_Screen.HomeScreen
+import com.example.note2.ui_Screen.NoteDetailScreen
 import com.example.note2.viewmodel.NoteViewModel
 import com.example.note2.ui.theme.Note2Theme
 import com.example.note2.ui.theme.ThemeManager
@@ -33,9 +33,10 @@ import java.util.*
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Login : Screen("login")
     object Home : Screen("home")
     object Detail : Screen("detail/{noteId}") {
-        fun createRoute(noteId: Int) = "detail/$noteId"
+        fun createRoute(noteId: String) = "detail/$noteId"
     }
     object Profile : Screen("profile")
     object Notification : Screen("notification")
@@ -75,12 +76,16 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable(Screen.Splash.route) {
                         SplashScreen(
-                            onNavigate = {
-                                navController.navigate(Screen.Home.route) {
+                            onNavigate = { route ->
+                                navController.navigate(route) {
                                     popUpTo(Screen.Splash.route) { inclusive = true }
                                 }
                             }
                         )
+                    }
+
+                    composable(Screen.Login.route) {
+                        // Gọi màn hình Login của bạn ở đây. 
                     }
 
                     composable(Screen.Home.route) {
@@ -90,7 +95,7 @@ class MainActivity : ComponentActivity() {
                             authViewModel = authViewModel,
                             themeViewModel = themeViewModel,
                             onAddNote = {
-                                navController.navigate(Screen.Detail.createRoute(-1))
+                                navController.navigate(Screen.Detail.createRoute("-1"))
                             },
                             onEditNote = { note ->
                                 navController.navigate(Screen.Detail.createRoute(note.id))
@@ -106,9 +111,9 @@ class MainActivity : ComponentActivity() {
 
                     composable(
                         route = Screen.Detail.route,
-                        arguments = listOf(navArgument("noteId") { type = NavType.IntType })
+                        arguments = listOf(navArgument("noteId") { type = NavType.StringType })
                     ) { backStackEntry ->
-                        val noteId = backStackEntry.arguments?.getInt("noteId") ?: -1
+                        val noteId = backStackEntry.arguments?.getString("noteId") ?: "-1"
                         NoteDetailScreen(
                             noteId = noteId,
                             viewModel = noteViewModel,
@@ -124,7 +129,7 @@ class MainActivity : ComponentActivity() {
                             onLogout = {
                                 authViewModel.logout()
                                 noteViewModel.clearData()
-                                navController.navigate(Screen.Home.route) {
+                                navController.navigate(Screen.Login.route) {
                                     popUpTo(0)
                                 }
                             },

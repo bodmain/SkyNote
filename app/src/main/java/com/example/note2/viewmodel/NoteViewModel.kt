@@ -10,15 +10,12 @@ import com.example.note2.data.NoteRepository
 import com.example.note2.model.NoteModel
 import com.example.note2.model.NotificationModel
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withTimeout
 
 enum class SyncState { IDLE, SYNCING, SUCCESS, ERROR }
 
@@ -44,18 +41,23 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         private set
 
     private var notesJob: Job? = null
+    private var syncJob: Job? = null
     private var notificationsJob: Job? = null
+    
     private val _notifications = MutableStateFlow<List<NotificationModel>>(emptyList())
     val notifications: StateFlow<List<NotificationModel>> = _notifications
 
-    private val firestore = FirebaseFirestore.getInstance()
-
     init {
-        startObservingNotes()
-        startObservingNotifications()
+        startObservingData()
     }
 
-    fun startObservingNotes() {
+    fun startObservingData() {
+        startObservingNotes()
+        startObservingNotifications()
+        startRealtimeSync()
+    }
+
+    private fun startObservingNotes() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
         notesJob?.cancel()
         notesJob = viewModelScope.launch {
@@ -65,60 +67,52 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
-    fun startObservingNotifications() {
+    private fun startObservingNotifications() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
         notificationsJob?.cancel()
         notificationsJob = viewModelScope.launch {
             val twentyFourHoursAgo = System.currentTimeMillis() - 86400000
-            repository.deleteOldNotifications(twentyFourHoursAgo)
+            try {
+                repository.deleteOldNotifications(twentyFourHoursAgo)
+            } catch (e: Exception) {
+                Log.e("DATABASE", "Error deleting old notifications: ${e.message}")
+            }
             repository.getNotificationsByUser(userId).collectLatest { list ->
                 _notifications.value = list
             }
         }
     }
 
+    private fun startRealtimeSync() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch {
+            repository.startRealtimeSync(userId).collectLatest { }
+        }
+    }
+
     fun syncAllNotes() {
-        val user = FirebaseAuth.getInstance().currentUser
-        if (user == null) {
-            Log.e("SYNC", "Chưa đăng nhập, không thể đồng bộ")
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null || userId == GUEST_USER_ID) {
             syncState = SyncState.ERROR
-            viewModelScope.launch { delay(2000); syncState = SyncState.IDLE }
+            viewModelScope.launch {
+                delay(2000)
+                syncState = SyncState.IDLE
+            }
             return
         }
-        val userId = user.uid
-        if (syncState == SyncState.SYNCING) return
 
         viewModelScope.launch {
             syncState = SyncState.SYNCING
-            Log.d("SYNC", "Bắt đầu đồng bộ cho: $userId. Ghi chú: ${notes.size}")
             try {
-                val localNotes = notes
-                if (localNotes.isEmpty()) {
-                    syncState = SyncState.SUCCESS
-                } else {
-                    withTimeout(30000L) {
-                        val batch = firestore.batch()
-                        localNotes.forEach { note ->
-                            val docRef = firestore.collection("users").document(userId)
-                                .collection("notes").document(note.id.toString())
-                            
-                            val noteData = hashMapOf(
-                                "title" to note.title,
-                                "description" to note.description,
-                                "timestamp" to note.timestamp,
-                                "color" to note.color,
-                                "userId" to userId,
-                                "imagePath" to note.imagePath
-                            )
-                            batch.set(docRef, noteData)
-                        }
-                        batch.commit().await()
-                    }
-                    syncState = SyncState.SUCCESS
-                    Log.d("SYNC", "Đồng bộ Firestore thành công")
+                // Trong kiến trúc Offline-first mới, Realtime Sync đã lo việc tải dữ liệu từ Firestore về Room.
+                // Ở đây ta chỉ cần đảm bảo tất cả Note local hiện tại đều được đẩy lên Firestore nếu có mạng.
+                notes.forEach { note ->
+                    repository.syncNoteToFirestore(note)
                 }
+                syncState = SyncState.SUCCESS
             } catch (e: Exception) {
-                Log.e("SYNC", "Lỗi đồng bộ: ${e.message}")
+                Log.e("SYNC", "Manual sync failed: ${e.message}")
                 syncState = SyncState.ERROR
             } finally {
                 delay(2000)
@@ -129,77 +123,58 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
 
     fun clearData() {
         notesJob?.cancel()
+        syncJob?.cancel()
         notificationsJob?.cancel()
         notes = emptyList()
         _notifications.value = emptyList()
-        searchText = ""
-        isSearchActive = false
-        startObservingNotes()
-        startObservingNotifications()
+        startObservingData()
     }
 
     fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF, imagePath: String? = null) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+        val newNote = NoteModel(
+            title = title, 
+            description = description, 
+            color = color, 
+            userId = userId,
+            imagePath = imagePath
+        )
+        
         viewModelScope.launch {
-            val note = NoteModel(
-                title = title, 
-                description = description, 
-                color = color, 
-                userId = userId,
-                imagePath = imagePath
-            )
-            repository.insertNote(note)
+            // 1. Lưu Local trước (UI cập nhật ngay lập tức nhờ Flow)
+            repository.insertNote(newNote)
+            
+            // 2. Đồng bộ lên Firestore nếu không phải khách
             if (userId != GUEST_USER_ID) {
-                syncNoteToFirestore(userId, note)
+                repository.syncNoteToFirestore(newNote)
             }
         }
     }
 
-    private suspend fun syncNoteToFirestore(uid: String, note: NoteModel) {
-        try {
-            val noteData = hashMapOf(
-                "title" to note.title,
-                "description" to note.description,
-                "timestamp" to note.timestamp,
-                "color" to note.color,
-                "userId" to uid,
-                "imagePath" to note.imagePath
-            )
-            firestore.collection("users").document(uid)
-                .collection("notes").document(note.id.toString())
-                .set(noteData)
-        } catch (e: Exception) {
-            Log.e("SYNC", "Error syncing note: ${e.message}")
-        }
-    }
-
-    fun deleteNote(note: NoteModel) = viewModelScope.launch { 
-        repository.deleteNote(note)
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-        if (userId != null) {
-            try {
-                firestore.collection("users").document(userId)
-                    .collection("notes").document(note.id.toString())
-                    .delete()
-            } catch (e: Exception) {
-                Log.e("SYNC", "Error deleting from firestore: ${e.message}")
+    fun updateNote(note: NoteModel) {
+        val updatedNote = note.copy(timestamp = System.currentTimeMillis())
+        viewModelScope.launch {
+            // 1. Cập nhật Local
+            repository.updateNote(updatedNote)
+            
+            // 2. Cập nhật Firestore
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            if (userId != null && userId != GUEST_USER_ID) {
+                repository.syncNoteToFirestore(updatedNote)
             }
         }
     }
-    
-    fun updateNote(note: NoteModel) = viewModelScope.launch { 
-        repository.updateNote(note)
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-        if (userId != null) {
-            syncNoteToFirestore(userId, note)
-        }
-    }
 
-    fun toggleSearch() {
-        isSearchActive = !isSearchActive
-        if (!isSearchActive) {
-            searchText = ""
-            searchResults = emptyList()
+    fun deleteNote(note: NoteModel) {
+        viewModelScope.launch {
+            // 1. Xóa Local
+            repository.deleteNote(note)
+            
+            // 2. Xóa Firestore
+            val userId = FirebaseAuth.getInstance().currentUser?.uid
+            if (userId != null && userId != GUEST_USER_ID) {
+                repository.deleteNoteFromFirestore(note.id, userId)
+            }
         }
     }
 
@@ -212,6 +187,14 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
                 it.title.contains(query, ignoreCase = true) ||
                 it.description.contains(query, ignoreCase = true)
             }
+        }
+    }
+
+    fun toggleSearch() {
+        isSearchActive = !isSearchActive
+        if (!isSearchActive) {
+            searchText = ""
+            searchResults = emptyList()
         }
     }
 
@@ -242,5 +225,4 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     fun deleteNotification(notification: NotificationModel) {
         viewModelScope.launch { repository.deleteNotification(notification) }
     }
-
 }

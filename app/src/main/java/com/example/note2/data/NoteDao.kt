@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface NoteDao {
-    @Query("SELECT * FROM notes WHERE userId = :userId")
+    @Query("SELECT * FROM notes WHERE userId = :userId ORDER BY timestamp DESC")
     fun getNotesByUser(userId: String): Flow<List<NoteModel>>
+
+    @Query("SELECT * FROM notes WHERE id = :noteId")
+    suspend fun getNoteById(noteId: String): NoteModel?
 
     @Query("SELECT * FROM notes WHERE userId = :userId")
     suspend fun getNotesByUserList(userId: String): List<NoteModel>

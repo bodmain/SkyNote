@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,7 +46,6 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onBack: () -> Unit
 ) {
-    val user by authViewModel.currentUser.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -82,6 +82,17 @@ fun ProfileScreen(
                 text = currentUser.email ?: "",
                 style = MaterialTheme.typography.bodySmall
             )
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = {showDialog = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer)
+                ){
+                    Text("Đăng xuất")
+                }
+
         } else {
             Box(
                 modifier = Modifier
@@ -105,14 +116,10 @@ fun ProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            //  Logout Button
-
-            Button(
-                onClick = { showDialog = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Đăng xuất")
-            }
+            Text(
+                text = "Vui lòng đăng nhập để đồng bộ ghi chú của bạn.",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
 
         //  Dialog xác nhận

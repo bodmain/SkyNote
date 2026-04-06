@@ -37,7 +37,7 @@ fun HomeScreen(
     themeViewModel: ThemeViewModel,
     onAddNote: () -> Unit,
     onEditNote: (NoteModel) -> Unit,
-    onNoteClick: (Int) -> Unit,
+    onNoteClick: (String) -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -65,8 +65,7 @@ fun HomeScreen(
     val authUiState by authViewModel.uiState.collectAsState()
 
     LaunchedEffect(currentUser) {
-        viewModel.startObservingNotes()
-        viewModel.startObservingNotifications()
+        viewModel.startObservingData()
     }
 
     ModalNavigationDrawer(

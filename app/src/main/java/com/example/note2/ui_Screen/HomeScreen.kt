@@ -52,7 +52,7 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     
-    val tabs = listOf("Tất cả", "Có ảnh", "Lời nhắc")
+    val tabs = listOf("Ghi chú", "Ảnh", "Lời nhắc")
     val pagerState = rememberPagerState(pageCount = { tabs.size })
 
 
@@ -139,7 +139,6 @@ fun HomeScreen(
                             }
                         }
                         
-                        // Đường kẻ ngang mờ ở dưới tab
                         HorizontalDivider(
                             modifier = Modifier.fillMaxWidth(),
                             thickness = 1.dp,
@@ -193,8 +192,8 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxSize().padding(innerPadding)
                 ) { pageIndex ->
                     val filteredNotes = when (pageIndex) {
-                        0 -> viewModel.notes
-                        1 -> viewModel.notes.filter { it.imagePath != null }
+                        0 -> viewModel.notes.filter { it.imagePath == null } // Chỉ ghi chú chữ
+                        1 -> viewModel.notes.filter { it.imagePath != null } // Chỉ ghi chú có ảnh
                         2 -> {
                             val noteIdsWithReminders = notifications.map { it.noteId }.toSet()
                             viewModel.notes.filter { noteIdsWithReminders.contains(it.id) }
@@ -204,8 +203,8 @@ fun HomeScreen(
 
                     if (filteredNotes.isEmpty()) {
                         val message = when (pageIndex) {
-                            0 -> "Chưa có ghi chú nào. Hãy bắt đầu viết gì đó!"
-                            1 -> "Không tìm thấy ghi chú có hình ảnh."
+                            0 -> "Chưa có ghi chú chữ nào."
+                            1 -> "Chưa có ghi chú ảnh nào."
                             2 -> "Bạn không có lời nhắc nào sắp tới."
                             else -> ""
                         }
@@ -218,17 +217,18 @@ fun HomeScreen(
                         }
                     } else {
                         LazyVerticalStaggeredGrid(
-                            columns = StaggeredGridCells.Fixed(2),
+                            columns = if (pageIndex == 1) StaggeredGridCells.Fixed(3) else StaggeredGridCells.Fixed(2),
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 8.dp),
                             contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalItemSpacing = 12.dp
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalItemSpacing = 8.dp
                         ) {
                             items(filteredNotes) { note ->
                                 NoteItem(
                                     note = note,
+                                    isGalleryMode = pageIndex == 1,
                                     onClick = { onEditNote(note) },
                                     onDelete = { viewModel.showDeleteDialog(it) }
                                 )

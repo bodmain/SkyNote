@@ -33,7 +33,6 @@ import java.util.*
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
-    object Login : Screen("login")
     object Home : Screen("home")
     object Detail : Screen("detail/{noteId}") {
         fun createRoute(noteId: String) = "detail/$noteId"
@@ -84,10 +83,6 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable(Screen.Login.route) {
-                        // Gọi màn hình Login của bạn ở đây. 
-                    }
-
                     composable(Screen.Home.route) {
                         HomeScreen(
                             navController = navController,
@@ -129,8 +124,9 @@ class MainActivity : ComponentActivity() {
                             onLogout = {
                                 authViewModel.logout()
                                 noteViewModel.clearData()
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(0)
+                                // Sau khi logout, quay lại màn hình Home
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(0) { inclusive = true }
                                 }
                             },
                             onBack = { navController.popBackStack() }

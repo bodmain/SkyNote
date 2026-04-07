@@ -6,9 +6,10 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "notifications")
 data class NotificationModel(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val noteId: String = "", // Thêm trường noteId để liên kết với NoteModel
     val title: String,
     val message: String,
     val timestamp: Long = System.currentTimeMillis(),
     val userId: String,
-    val isRead: Boolean = false // Mặc định là chưa xem
+    val isRead: Boolean = false
 )

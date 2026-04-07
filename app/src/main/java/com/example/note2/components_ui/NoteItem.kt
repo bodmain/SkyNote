@@ -1,14 +1,15 @@
 package com.example.note2.components_ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +28,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteItem(
     note: NoteModel,
@@ -37,62 +39,69 @@ fun NoteItem(
         NoteColors[note.id.hashCode().coerceAtLeast(0) % NoteColors.size]
     }
 
+    var showDeleteIcon by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .clickable { onClick(note) },
-        shape = RoundedCornerShape(24.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .combinedClickable(
+                onClick = { onClick(note) },
+                onLongClick = { showDeleteIcon = !showDeleteIcon }
+            ),
+        shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(
             containerColor = randomBackgroundColor
         )
     ) {
         Column {
-            // Hiển thị ảnh nếu có
+            // Hiển thị ảnh nếu có với tỉ lệ cố định để tránh thẻ quá to
             if (note.imagePath != null) {
                 AsyncImage(
                     model = note.imagePath,
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 200.dp)
-                        .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+                        .aspectRatio(1.6f) // Cố định tỉ lệ 16:10 cho ảnh
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
                     contentScale = ContentScale.Crop
                 )
             }
 
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(12.dp)
             ) {
                 // Tiêu đề
                 if (note.title.isNotBlank()) {
                     Text(
                         text = note.title,
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.Black.copy(alpha = 0.8f),
-                            fontSize = 18.sp
+                            fontWeight = FontWeight.Black,
+                            color = Color.Black.copy(alpha = 0.9f),
+                            fontSize = 16.sp
                         ),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                 }
 
-                // Nội dung mô tả
+                // Nội dung mô tả - Giới hạn dòng chặt chẽ hơn cho thẻ có ảnh
                 if (note.description.isNotBlank()) {
                     Text(
                         text = note.description,
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.bodySmall.copy(
                             color = Color.Black.copy(alpha = 0.6f),
-                            lineHeight = 20.sp
+                            lineHeight = 18.sp
                         ),
-                        maxLines = 6,
+                        maxLines = if (note.imagePath != null) 3 else 8,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -102,25 +111,36 @@ fun NoteItem(
                     Text(
                         text = getRelativeTime(note.timestamp),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            color = Color.Black.copy(alpha = 0.4f),
-                            fontWeight = FontWeight.Medium
+                            color = Color.Black.copy(alpha = 0.3f),
+                            fontSize = 10.sp
                         )
                     )
 
-                    IconButton(
-                        onClick = { onDelete(note) },
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(8.dp)
+                    if (showDeleteIcon) {
+                        IconButton(
+                            onClick = { 
+                                onDelete(note)
+                                showDeleteIcon = false
+                            },
+                            modifier = Modifier
+                                .size(24.dp)
+                                .background(
+                                    color = Color.Red.copy(alpha = 0.1f),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = "Xóa",
+                                tint = Color.Red.copy(alpha = 0.6f),
+                                modifier = Modifier.size(14.dp)
                             )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Xóa",
-                            tint = Color.Black.copy(alpha = 0.5f),
-                            modifier = Modifier.size(16.dp)
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(4.dp)
+                                .background(Color.Black.copy(alpha = 0.05f), CircleShape)
                         )
                     }
                 }

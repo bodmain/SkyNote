@@ -58,63 +58,97 @@ fun HomeDrawerContent(
     val iconColor by animateColorAsState(
         targetValue = when (syncState) {
             SyncState.SYNCING -> MaterialTheme.colorScheme.primary
-            SyncState.SUCCESS -> Color(0xFF4CAF50) // Green
-            SyncState.ERROR -> MaterialTheme.colorScheme.error // Red
-            else -> if (currentUser != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+            SyncState.SUCCESS -> Color(0xFF4CAF50)
+            SyncState.ERROR -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
         label = "icon_color"
     )
 
 
-    ModalDrawerSheet {
-        Column(
+    ModalDrawerSheet(
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
+        drawerContentColor = MaterialTheme.colorScheme.onSurface
+    ) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.primaryContainer)
-                .padding(24.dp)
         ) {
-            if (currentUser != null) {
-                AsyncImage(
-                    model = currentUser.photoUrl,
-                    contentDescription = "Profile picture",
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray),
-                    contentScale = ContentScale.Crop
+            // Nút đóng (X) ở góc trên bên phải của phần Header
+            IconButton(
+                onClick = onCloseDrawer,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close Drawer",
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                 )
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = currentUser.displayName ?: "Người dùng SkyNote",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = currentUser.email ?: "",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(32.dp))
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Chế độ Khách",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Button(
-                    onClick = onLoginClick,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    Text("Đăng nhập bằng Google")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+            ) {
+                if (currentUser != null) {
+                    AsyncImage(
+                        model = currentUser.photoUrl,
+                        contentDescription = "Profile picture",
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentScale = ContentScale.Crop
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = currentUser.displayName ?: "Người dùng SkyNote",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = currentUser.email ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.Person, 
+                            contentDescription = null, 
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Chế độ Khách",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Button(
+                        onClick = onLoginClick,
+                        modifier = Modifier.padding(top = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("Đăng nhập bằng Google")
+                    }
                 }
             }
         }
@@ -129,7 +163,12 @@ fun HomeDrawerContent(
                 onCloseDrawer()
             },
             icon = { Icon(Icons.Default.Notes, contentDescription = null) },
-            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+            modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+            colors = NavigationDrawerItemDefaults.colors(
+                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer
+            )
         )
 
         NavigationDrawerItem(
@@ -150,7 +189,6 @@ fun HomeDrawerContent(
                 }
             },
             icon = {
-                // Tách biệt hoàn toàn modifier xoay
                 val rotateModifier = if (syncState == SyncState.SYNCING) {
                     Modifier.rotate(rotation)
                 } else {
@@ -183,7 +221,7 @@ fun HomeDrawerContent(
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
 
         NavigationDrawerItem(
             label = { Text("Hồ sơ & Cài đặt") },
@@ -195,7 +233,7 @@ fun HomeDrawerContent(
             icon = { Icon(Icons.Default.Settings, contentDescription = null) },
             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
         )
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
         NavigationDrawerItem(
             label = {
                 Row(
@@ -208,7 +246,11 @@ fun HomeDrawerContent(
                         checked = isDark,
                         onCheckedChange = { checked ->
                             themeViewModel.toggleTheme(checked)
-                        }
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     )
                 }
             },

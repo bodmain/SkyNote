@@ -1,10 +1,10 @@
 package com.example.note2.auth
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.note2.data.NoteDao
-import com.example.note2.model.NoteModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
@@ -38,11 +38,22 @@ class AuthViewModel(
                 _currentUser.value = user
                 
                 if (user != null) {
-                    noteDao.migrateGuestNotes(user.uid)
+                    try {
+                        // Migrate guest notes to the new user ID in Room
+                        noteDao.migrateGuestNotes(user.uid)
 
-                    syncNotesToFirestore(user.uid, noteDao)
-                    
-                    _uiState.value = AuthUiState(isSuccess = true)
+                        // Sync the migrated notes to Firestore
+                        syncNotesToFirestore(user.uid, noteDao)
+                        
+                        _uiState.value = AuthUiState(isSuccess = true)
+                    } catch (e: Exception) {
+                        Log.e("AUTH", "Error after sign in: ${e.message}")
+                        _uiState.value = AuthUiState(
+                            isLoading = false,
+                            errorMessage = "Đăng nhập thành công nhưng lỗi đồng bộ: ${e.message}",
+                            isSuccess = true // Still logged in
+                        )
+                    }
                 }
             } else {
                 _uiState.value = AuthUiState(
@@ -57,24 +68,23 @@ class AuthViewModel(
     private suspend fun syncNotesToFirestore(uid: String, noteDao: NoteDao) {
         try {
             val localNotes = noteDao.getNotesByUserList(uid)
-            val batch = firestore.batch()
-            
-            localNotes.forEach { note ->
-                val docRef = firestore.collection("users").document(uid)
-                    .collection("notes").document(note.id.toString())
-                
-                val noteData = hashMapOf(
-                    "title" to note.title,
-                    "description" to note.description,
-                    "timestamp" to note.timestamp,
-                    "color" to note.color,
-                    "userId" to uid
-                )
-                batch.set(docRef, noteData)
+            if (localNotes.isEmpty()) return
+
+            localNotes.chunked(500).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { note ->
+                    val docRef = firestore.collection("users").document(uid)
+                        .collection("notes").document(note.id)
+                    
+                    // Essential: Include all fields, especially 'id' and 'userId'
+                    batch.set(docRef, note)
+                }
+                batch.commit().await()
             }
-            
-            batch.commit().await()
+            Log.d("AUTH", "Successfully synced ${localNotes.size} notes to Firestore")
         } catch (e: Exception) {
+            Log.e("AUTH", "Error syncing notes to firestore: ${e.message}")
+            throw e
         }
     }
 

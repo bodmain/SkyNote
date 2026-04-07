@@ -33,7 +33,7 @@ fun NoteFAB(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.padding(16.dp)
     ) {
-        //  (Sub-buttons)
+        // Sub-buttons
         AnimatedVisibility(
             visible = isExpanded,
             enter = fadeIn() + expandVertically() + slideInVertically { it },
@@ -58,11 +58,11 @@ fun NoteFAB(
             }
         }
 
-        //  (Main FAB)
+        // Main FAB
         FloatingActionButton(
             onClick = { isExpanded = !isExpanded },
-            containerColor = Color(0xFFF57C00),
-            contentColor = Color.White,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
             shape = CircleShape,
             elevation = FloatingActionButtonDefaults.elevation(8.dp)
         ) {
@@ -87,10 +87,10 @@ fun FabSubItem(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(end = 4.dp)
     ) {
-        //  (Label)
+        // Label
         Surface(
             shape = MaterialTheme.shapes.small,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 2.dp,
             modifier = Modifier.padding(end = 8.dp)
         ) {
@@ -98,14 +98,14 @@ fun FabSubItem(
                 text = label,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
 
         SmallFloatingActionButton(
             onClick = onClick,
-            containerColor = Color.White,
-            contentColor = Color(0xFFF57C00),
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             shape = CircleShape
         ) {
             Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 
 enum class SyncState { IDLE, SYNCING, SUCCESS, ERROR }
 
@@ -48,17 +49,22 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     val notifications: StateFlow<List<NotificationModel>> = _notifications
 
     init {
-        startObservingData()
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+        startObservingData(currentUserId)
     }
 
-    fun startObservingData() {
-        startObservingNotes()
-        startObservingNotifications()
-        startRealtimeSync()
+    fun startObservingData(userId: String) {
+        Log.d("SYNC", "Starting to observe data for user: $userId")
+        startObservingNotes(userId)
+        startObservingNotifications(userId)
+        if (userId != GUEST_USER_ID) {
+            startRealtimeSync(userId)
+        } else {
+            syncJob?.cancel()
+        }
     }
 
-    private fun startObservingNotes() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+    private fun startObservingNotes(userId: String) {
         notesJob?.cancel()
         notesJob = viewModelScope.launch {
             repository.getNotesByUser(userId).collectLatest { listOfNotes ->
@@ -67,8 +73,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
-    private fun startObservingNotifications() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+    private fun startObservingNotifications(userId: String) {
         notificationsJob?.cancel()
         notificationsJob = viewModelScope.launch {
             val twentyFourHoursAgo = System.currentTimeMillis() - 86400000
@@ -83,8 +88,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
-    private fun startRealtimeSync() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+    private fun startRealtimeSync(userId: String) {
         syncJob?.cancel()
         syncJob = viewModelScope.launch {
             repository.startRealtimeSync(userId).collectLatest { }
@@ -92,8 +96,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
     fun syncAllNotes() {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-        if (userId == null || userId == GUEST_USER_ID) {
+        if (syncState != SyncState.IDLE) return
+
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
             syncState = SyncState.ERROR
             viewModelScope.launch {
                 delay(2000)
@@ -105,14 +111,16 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         viewModelScope.launch {
             syncState = SyncState.SYNCING
             try {
-                // Trong kiến trúc Offline-first mới, Realtime Sync đã lo việc tải dữ liệu từ Firestore về Room.
-                // Ở đây ta chỉ cần đảm bảo tất cả Note local hiện tại đều được đẩy lên Firestore nếu có mạng.
-                notes.forEach { note ->
-                    repository.syncNoteToFirestore(note)
+                // Ensure all local notes have the correct userId before syncing
+                val notesToSync = notes.map { it.copy(userId = user.uid) }
+                Log.d("SYNC", "Starting manual sync for ${notesToSync.size} notes for user ${user.uid}")
+                
+                withTimeout(15000) {
+                    repository.syncNotesToFirestore(notesToSync, user.uid)
                 }
                 syncState = SyncState.SUCCESS
             } catch (e: Exception) {
-                Log.e("SYNC", "Manual sync failed: ${e.message}")
+                Log.e("SYNC", "Manual sync failed or timed out: ${e.message}")
                 syncState = SyncState.ERROR
             } finally {
                 delay(2000)
@@ -127,11 +135,13 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         notificationsJob?.cancel()
         notes = emptyList()
         _notifications.value = emptyList()
-        startObservingData()
+        syncState = SyncState.IDLE
     }
 
     fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF, imagePath: String? = null) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+        val user = FirebaseAuth.getInstance().currentUser
+        val userId = user?.uid ?: GUEST_USER_ID
+        
         val newNote = NoteModel(
             title = title, 
             description = description, 
@@ -141,39 +151,54 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         )
         
         viewModelScope.launch {
-            // 1. Lưu Local trước (UI cập nhật ngay lập tức nhờ Flow)
+            // Save locally first
             repository.insertNote(newNote)
             
-            // 2. Đồng bộ lên Firestore nếu không phải khách
+            // Sync to Firestore if logged in
             if (userId != GUEST_USER_ID) {
-                repository.syncNoteToFirestore(newNote)
+                try {
+                    repository.syncNoteToFirestore(newNote)
+                    Log.d("SYNC", "Auto-synced new note to Firestore")
+                } catch (e: Exception) {
+                    Log.e("SYNC", "Auto sync failed for new note: ${e.message}")
+                }
             }
         }
     }
 
     fun updateNote(note: NoteModel) {
-        val updatedNote = note.copy(timestamp = System.currentTimeMillis())
+        val user = FirebaseAuth.getInstance().currentUser
+        val userId = user?.uid ?: GUEST_USER_ID
+        
+        val updatedNote = note.copy(
+            timestamp = System.currentTimeMillis(),
+            userId = userId // Ensure userId is correct
+        )
+        
         viewModelScope.launch {
-            // 1. Cập nhật Local
             repository.updateNote(updatedNote)
-            
-            // 2. Cập nhật Firestore
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            if (userId != null && userId != GUEST_USER_ID) {
-                repository.syncNoteToFirestore(updatedNote)
+            if (userId != GUEST_USER_ID) {
+                try {
+                    repository.syncNoteToFirestore(updatedNote)
+                } catch (e: Exception) {
+                    Log.e("SYNC", "Auto sync failed for updated note")
+                }
             }
         }
     }
 
     fun deleteNote(note: NoteModel) {
+        val user = FirebaseAuth.getInstance().currentUser
+        val userId = user?.uid ?: GUEST_USER_ID
+
         viewModelScope.launch {
-            // 1. Xóa Local
             repository.deleteNote(note)
-            
-            // 2. Xóa Firestore
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            if (userId != null && userId != GUEST_USER_ID) {
-                repository.deleteNoteFromFirestore(note.id, userId)
+            if (userId != GUEST_USER_ID) {
+                try {
+                    repository.deleteNoteFromFirestore(note.id, userId)
+                } catch (e: Exception) {
+                    Log.e("SYNC", "Auto sync failed for deleted note")
+                }
             }
         }
     }

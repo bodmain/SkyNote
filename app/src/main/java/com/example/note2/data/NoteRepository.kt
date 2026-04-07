@@ -28,6 +28,12 @@ class NoteRepository(
 
     // --- REALTIME SYNC ---
     fun startRealtimeSync(userId: String): Flow<Unit> = callbackFlow {
+        if (userId == "guest") {
+            close()
+            return@callbackFlow
+        }
+        
+        Log.d("SYNC", "Starting realtime sync for user: $userId")
         val listener = firestore.collection("users").document(userId)
             .collection("notes")
             .addSnapshotListener { snapshot, error ->
@@ -37,21 +43,29 @@ class NoteRepository(
                 }
 
                 snapshot?.documentChanges?.forEach { change ->
-                    val remoteNote = change.document.toObject(NoteModel::class.java)
-                    
-                    launch {
-                        val localNote = noteDao.getNoteById(remoteNote.id)
+                    try {
+                        // Crucial: Use the document ID as the note ID to avoid duplication/mismatch
+                        val remoteNote = change.document.toObject(NoteModel::class.java).copy(id = change.document.id)
                         
-                        when (change.type) {
-                            DocumentChange.Type.ADDED, DocumentChange.Type.MODIFIED -> {
-                                if (localNote == null || remoteNote.timestamp > localNote.timestamp) {
-                                    noteDao.insert(remoteNote)
+                        launch {
+                            val localNote = noteDao.getNoteById(remoteNote.id)
+                            
+                            when (change.type) {
+                                DocumentChange.Type.ADDED, DocumentChange.Type.MODIFIED -> {
+                                    // Only update if local is missing or remote is newer
+                                    if (localNote == null || remoteNote.timestamp > localNote.timestamp) {
+                                        noteDao.insert(remoteNote)
+                                        Log.d("SYNC", "Updated local note: ${remoteNote.id}")
+                                    }
+                                }
+                                DocumentChange.Type.REMOVED -> {
+                                    noteDao.delete(remoteNote)
+                                    Log.d("SYNC", "Deleted local note: ${remoteNote.id}")
                                 }
                             }
-                            DocumentChange.Type.REMOVED -> {
-                                noteDao.delete(remoteNote)
-                            }
                         }
+                    } catch (e: Exception) {
+                        Log.e("SYNC", "Error processing remote change: ${e.message}")
                     }
                 }
             }
@@ -59,22 +73,47 @@ class NoteRepository(
     }
 
     suspend fun syncNoteToFirestore(note: NoteModel) {
+        if (note.userId == "guest") return
         try {
             firestore.collection("users").document(note.userId)
                 .collection("notes").document(note.id)
                 .set(note).await()
+            Log.d("SYNC", "Synced note to Firestore: ${note.id}")
         } catch (e: Exception) {
-            Log.e("SYNC", "Error syncing to firestore: ${e.message}")
+            Log.e("SYNC", "Error syncing to Firestore: ${e.message}")
+            throw e
+        }
+    }
+
+    suspend fun syncNotesToFirestore(notes: List<NoteModel>, userId: String) {
+        if (userId == "guest" || notes.isEmpty()) return
+        
+        try {
+            notes.chunked(500).forEach { chunk ->
+                val batch = firestore.batch()
+                chunk.forEach { note ->
+                    val docRef = firestore.collection("users").document(userId)
+                        .collection("notes").document(note.id)
+                    batch.set(docRef, note)
+                }
+                batch.commit().await()
+            }
+            Log.d("SYNC", "Batch sync completed for ${notes.size} notes")
+        } catch (e: Exception) {
+            Log.e("SYNC", "Batch sync failed: ${e.message}")
+            throw e
         }
     }
 
     suspend fun deleteNoteFromFirestore(noteId: String, userId: String) {
+        if (userId == "guest") return
         try {
             firestore.collection("users").document(userId)
                 .collection("notes").document(noteId)
                 .delete().await()
         } catch (e: Exception) {
-            Log.e("SYNC", "Error deleting from firestore: ${e.message}")
+            Log.e("SYNC", "Error deleting from Firestore: ${e.message}")
+            throw e
         }
     }
 

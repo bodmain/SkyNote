@@ -49,8 +49,6 @@ fun SplashScreen(
         }
 
         delay(2000)
-
-        // Luôn chuyển đến màn hình Home, việc đăng nhập là tùy chọn
         onNavigate("home")
     }
 
@@ -60,9 +58,9 @@ fun SplashScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFFB74D),
-                        Color(0xFFF57C00),
-                        Color(0xFFE65100)
+                        Color(0xFF001D36), // Deep Indigo
+                        Color(0xFF00497D), // Ocean Blue
+                        Color(0xFF0061A4)  // Sky Blue
                     )
                 )
             ),

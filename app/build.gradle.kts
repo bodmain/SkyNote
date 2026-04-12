@@ -43,7 +43,7 @@ kotlin {
 }
 
 ksp {
-    arg("room.generateKotlin", "true")
+    // arg("room.generateKotlin", "true")
 }
 
 dependencies {
@@ -83,4 +83,6 @@ dependencies {
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.androidx.datastore.preferences)
+
+    implementation("com.google.code.gson:gson:2.10.1")
 }

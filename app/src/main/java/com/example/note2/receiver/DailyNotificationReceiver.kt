@@ -10,8 +10,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.example.note2.MainActivity
 import com.example.note2.R
-import com.example.note2.data.AppDatabase
-import com.example.note2.model.NotificationModel
+import com.example.note2.data.local.AppDatabase
+import com.example.note2.data.model.NotificationModel
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,11 +21,7 @@ class DailyNotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = "Xin Chào Buổi Sáng! ☀️"
         val message = "Chúc bạn một buổi sáng vui vẻ, hãy quay lại ứng dụng để đọc lại những dòng note và viết những note mới nhé!"
-
-        //  Hiển thị thông báo lên thanh trạng thái
         showNotification(context, title, message)
-
-        //  Lưu vào Database
         saveToDatabase(context, title, message)
     }
 

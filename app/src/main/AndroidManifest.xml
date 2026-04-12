@@ -26,13 +26,15 @@
             </intent-filter>
         </service>
 
-        <!-- ⏰ Daily Notification Receiver -->
+        <!-- ⏰ Notification Receiver (Daily & Notes) -->
         <receiver
-            android:name=".receiver.DailyNotificationReceiver"
+            android:name=".receiver.NoteNotificationReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="com.example.note2.ACTION_DAILY_REMINDER" />
+                <action android:name="com.example.note2.ACTION_NOTE_REMINDER" />
             </intent-filter>
         </receiver>
 

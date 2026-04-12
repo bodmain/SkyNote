@@ -8,43 +8,40 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.navigation.NavType
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
-import androidx.navigation.navArgument
-import com.example.note2.auth.AuthRepository
-import com.example.note2.auth.AuthViewModel
-import com.example.note2.components_ui.NotificationScreen
-import com.example.note2.components_ui.ProfileScreen
-import com.example.note2.components_ui.SplashScreen
-import com.example.note2.data.AppDatabase
-import com.example.note2.data.NoteRepository
-import com.example.note2.receiver.DailyNotificationReceiver
-import com.example.note2.ui_Screen.HomeScreen
-import com.example.note2.ui_Screen.NoteDetailScreen
-import com.example.note2.viewmodel.NoteViewModel
+import coil.compose.AsyncImage
+import com.example.note2.data.local.AppDatabase
+import com.example.note2.data.repository.AuthRepository
+import com.example.note2.data.repository.NoteRepository
+import com.example.note2.navigation.NavGraph
+import com.example.note2.navigation.Screen
+import com.example.note2.receiver.NoteNotificationReceiver
 import com.example.note2.ui.theme.Note2Theme
 import com.example.note2.ui.theme.ThemeManager
+import com.example.note2.viewmodel.AuthViewModel
+import com.example.note2.viewmodel.NoteViewModel
 import com.example.note2.viewmodel.ThemeViewModel
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.*
-
-sealed class Screen(val route: String) {
-    object Splash : Screen("splash")
-    object Home : Screen("home")
-    object Detail : Screen("detail/{noteId}") {
-        fun createRoute(noteId: String) = "detail/$noteId"
-    }
-    object Profile : Screen("profile")
-    object Notification : Screen("notification")
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        
         val themeManager = ThemeManager(applicationContext)
         val themeViewModel = ThemeViewModel(themeManager)
 
@@ -64,80 +61,70 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val currentTheme by themeViewModel.themeMode.collectAsState()
+            val currentUser by authViewModel.currentUser.collectAsState()
+
             Note2Theme(themeMode = currentTheme) {
                 val navController = rememberNavController()
+                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentDestination = navBackStackEntry?.destination
 
+                val bottomNavScreens = listOf(Screen.Home.route, Screen.Trash.route, Screen.Profile.route)
+                // Đảm bảo không hiện BottomBar ở màn hình Splash hoặc các màn hình không thuộc main flow
+                val showBottomNav = currentDestination?.route in bottomNavScreens
 
-                NavHost(
-                    navController = navController,
-                    startDestination = Screen.Splash.route
-
-                ) {
-                    composable(Screen.Splash.route) {
-                        SplashScreen(
-                            onNavigate = { route ->
-                                navController.navigate(route) {
-                                    popUpTo(Screen.Splash.route) { inclusive = true }
+                Scaffold(
+                    bottomBar = {
+                        if (showBottomNav) {
+                            NavigationBar(
+                                containerColor = MaterialTheme.colorScheme.surface,
+                                tonalElevation = 0.dp
+                            ) {
+                                listOf(Screen.Home, Screen.Trash, Screen.Profile).forEach { screen ->
+                                    NavigationBarItem(
+                                        icon = {
+                                            if (screen == Screen.Profile && currentUser?.photoUrl != null) {
+                                                AsyncImage(
+                                                    model = currentUser!!.photoUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .clip(CircleShape),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                screen.icon?.let { Icon(it, contentDescription = null) }
+                                            }
+                                        },
+                                        label = { Text(screen.label) },
+                                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                                        onClick = {
+                                            navController.navigate(screen.route) {
+                                                popUpTo(navController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                launchSingleTop = true
+                                                restoreState = true
+                                            }
+                                        },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                                        )
+                                    )
                                 }
                             }
-                        )
+                        }
                     }
-
-                    composable(Screen.Home.route) {
-                        HomeScreen(
-                            navController = navController,
-                            viewModel = noteViewModel,
-                            authViewModel = authViewModel,
-                            themeViewModel = themeViewModel,
-                            onAddNote = {
-                                navController.navigate(Screen.Detail.createRoute("-1"))
-                            },
-                            onEditNote = { note ->
-                                navController.navigate(Screen.Detail.createRoute(note.id))
-                            },
-                            onNoteClick = { noteId ->
-                                navController.navigate(Screen.Detail.createRoute(noteId))
-                            },
-                            onNavigateToProfile = {
-                                navController.navigate(Screen.Profile.route)
-                            }
-                        )
-                    }
-
-                    composable(
-                        route = Screen.Detail.route,
-                        arguments = listOf(navArgument("noteId") { type = NavType.StringType })
-                    ) { backStackEntry ->
-                        val noteId = backStackEntry.arguments?.getString("noteId") ?: "-1"
-                        NoteDetailScreen(
-                            noteId = noteId,
-                            viewModel = noteViewModel,
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.Profile.route) {
-                        val currentUser by authViewModel.currentUser.collectAsState()
-                        ProfileScreen(
-                            currentUser = currentUser,
-                            authViewModel = authViewModel,
-                            onLogout = {
-                                authViewModel.logout()
-                                noteViewModel.clearData()
-                                // Sau khi logout, quay lại màn hình Home
-                                navController.navigate(Screen.Home.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            },
-                            onBack = { navController.popBackStack() }
-                        )
-                    }
-
-                    composable(Screen.Notification.route) {
-                        NotificationScreen(viewModel = noteViewModel, onBack = {
-                            navController.popBackStack()
-                        })
-                    }
+                ) { innerPadding ->
+                    NavGraph(
+                        navController = navController,
+                        noteViewModel = noteViewModel,
+                        authViewModel = authViewModel,
+                        themeViewModel = themeViewModel,
+                        currentUser = currentUser,
+                        modifier = Modifier.padding(innerPadding)
+                    )
                 }
             }
         }
@@ -145,7 +132,9 @@ class MainActivity : ComponentActivity() {
 
     private fun scheduleDailyNotification(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(context, DailyNotificationReceiver::class.java)
+        val intent = Intent(context, NoteNotificationReceiver::class.java).apply {
+            action = NoteNotificationReceiver.ACTION_DAILY_REMINDER
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             context, 1001, intent, 
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -154,7 +143,7 @@ class MainActivity : ComponentActivity() {
         val calendar = Calendar.getInstance().apply {
             timeInMillis = System.currentTimeMillis()
             set(Calendar.HOUR_OF_DAY, 9)
-            set(Calendar.MINUTE, 23)
+            set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             if (before(Calendar.getInstance())) {
                 add(Calendar.DATE, 1)

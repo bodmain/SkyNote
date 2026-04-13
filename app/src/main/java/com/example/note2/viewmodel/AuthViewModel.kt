@@ -8,6 +8,7 @@ import com.example.note2.data.local.NoteDao
 import com.example.note2.data.repository.AuthRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -83,9 +84,47 @@ class AuthViewModel(
         }
     }
 
+    fun updateProfile(newDisplayName: String) {
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null) {
+            _uiState.value = AuthUiState(isLoading = true)
+            val profileUpdates = UserProfileChangeRequest.Builder()
+                .setDisplayName(newDisplayName)
+                .build()
+
+            viewModelScope.launch {
+                try {
+                    user.updateProfile(profileUpdates).await()
+                    // Reload user to get updated info
+                    user.reload().await()
+                    _currentUser.value = FirebaseAuth.getInstance().currentUser
+                    _uiState.value = AuthUiState(isSuccess = true, message = "Cập nhật tên thành công")
+                } catch (e: Exception) {
+                    _uiState.value = AuthUiState(errorMessage = "Lỗi: ${e.message}")
+                }
+            }
+        }
+    }
+
+    fun sendPasswordResetEmail(email: String) {
+        _uiState.value = AuthUiState(isLoading = true)
+        viewModelScope.launch {
+            try {
+                FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
+                _uiState.value = AuthUiState(isSuccess = true, message = "Đã gửi email đặt lại mật khẩu")
+            } catch (e: Exception) {
+                _uiState.value = AuthUiState(errorMessage = "Lỗi: ${e.message}")
+            }
+        }
+    }
+
     fun logout() {
         repository.logout()
         _currentUser.value = null
         _uiState.value = AuthUiState()
+    }
+    
+    fun clearMessage() {
+        _uiState.value = _uiState.value.copy(message = null, errorMessage = null)
     }
 }

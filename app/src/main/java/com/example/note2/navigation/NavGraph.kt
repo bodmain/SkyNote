@@ -79,6 +79,7 @@ fun NavGraph(
                 authViewModel = authViewModel,
                 themeViewModel = themeViewModel,
                 syncState = noteViewModel.syncState,
+                noteCountInTrash = noteViewModel.deletedNotes.size,
                 onSyncClick = { noteViewModel.syncAllNotes() },
                 onNavigateToTrash = { navController.navigate(Screen.Trash.route) },
                 onLogout = {

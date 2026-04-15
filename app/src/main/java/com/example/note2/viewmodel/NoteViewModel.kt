@@ -146,10 +146,10 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         val user = FirebaseAuth.getInstance().currentUser
         val userId = user?.uid ?: GUEST_USER_ID
         val noteToSave = note.copy(userId = userId, timestamp = System.currentTimeMillis())
-        
+
         viewModelScope.launch {
             repository.insertNote(noteToSave)
-            
+
             if (noteToSave.reminderTime != null && noteToSave.reminderTime > System.currentTimeMillis() && !noteToSave.isDeleted) {
                 NoteNotificationReceiver.scheduleNoteReminder(
                     context,
@@ -212,7 +212,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         viewModelScope.launch {
             val thirtyDaysAgo = System.currentTimeMillis() - THIRTY_DAYS_IN_MILLIS
             deletedNotes.forEach { note ->
-                if (note.timestamp < thirtyDaysAgo) { 
+                if (note.timestamp < thirtyDaysAgo) {
                     repository.deleteNote(note)
                     val userId = FirebaseAuth.getInstance().currentUser?.uid
                     if (userId != null && userId != GUEST_USER_ID) {

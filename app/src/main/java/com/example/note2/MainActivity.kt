@@ -8,6 +8,11 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -69,12 +74,16 @@ class MainActivity : ComponentActivity() {
                 val currentDestination = navBackStackEntry?.destination
 
                 val bottomNavScreens = listOf(Screen.Home.route, Screen.Trash.route, Screen.Profile.route)
-                // Đảm bảo không hiện BottomBar ở màn hình Splash hoặc các màn hình không thuộc main flow
                 val showBottomNav = currentDestination?.route in bottomNavScreens
 
                 Scaffold(
                     bottomBar = {
-                        if (showBottomNav) {
+                        // Sử dụng AnimatedVisibility để BottomBar xuất hiện/biến mất mượt mà
+                        AnimatedVisibility(
+                            visible = showBottomNav,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
                             NavigationBar(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 0.dp

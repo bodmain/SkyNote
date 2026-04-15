@@ -106,17 +106,17 @@ class AuthViewModel(
         }
     }
 
-    fun sendPasswordResetEmail(email: String) {
-        _uiState.value = AuthUiState(isLoading = true)
-        viewModelScope.launch {
-            try {
-                FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
-                _uiState.value = AuthUiState(isSuccess = true, message = "Đã gửi email đặt lại mật khẩu")
-            } catch (e: Exception) {
-                _uiState.value = AuthUiState(errorMessage = "Lỗi: ${e.message}")
-            }
-        }
-    }
+//    fun sendPasswordResetEmail(email: String) {
+//        _uiState.value = AuthUiState(isLoading = true)
+//        viewModelScope.launch {
+//            try {
+//                FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
+//                _uiState.value = AuthUiState(isSuccess = true, message = "Đã gửi email đặt lại mật khẩu")
+//            } catch (e: Exception) {
+//                _uiState.value = AuthUiState(errorMessage = "Lỗi: ${e.message}")
+//            }
+//        }
+//    }
 
     fun logout() {
         repository.logout()

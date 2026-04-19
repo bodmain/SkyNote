@@ -4,12 +4,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.unit.dp
+import com.example.note2.ui.components.EmptyStateComponent
 import com.example.note2.ui.components.NoteGrid
 import com.example.note2.ui.components.SearchBar
 import com.example.note2.viewmodel.NoteViewModel
@@ -68,27 +72,17 @@ fun SearchScreen(
                 .padding(paddingValues)
         ) {
             if (searchQuery.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Nhập nội dung để tìm kiếm",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                EmptyStateComponent(
+                    icon = Icons.Default.Search,
+                    title = "Tìm kiếm ghi chú",
+                    description = "Nhập từ khóa bất kỳ để tìm nhanh các ghi chú bạn đã lưu "
+                )
             } else if (filteredNotes.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Không tìm thấy ghi chú nào",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                EmptyStateComponent(
+                    icon = Icons.Default.SearchOff,
+                    title = "Không tìm thấy kết quả",
+                    description = "Thử tìm với từ khóa khác hoặc kiểm tra lại chính tả xem sao?"
+                )
             } else {
                 NoteGrid(
                     notes = filteredNotes,

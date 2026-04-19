@@ -1,6 +1,7 @@
 package com.example.note2.viewmodel
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -84,39 +85,36 @@ class AuthViewModel(
         }
     }
 
-    fun updateProfile(newDisplayName: String) {
+    fun updateProfile(newDisplayName: String, photoUrl: String? = null) {
         val user = FirebaseAuth.getInstance().currentUser
         if (user != null) {
             _uiState.value = AuthUiState(isLoading = true)
-            val profileUpdates = UserProfileChangeRequest.Builder()
+            
+            val builder = UserProfileChangeRequest.Builder()
                 .setDisplayName(newDisplayName)
-                .build()
+            
+            if (photoUrl != null) {
+                builder.setPhotoUri(Uri.parse(photoUrl))
+            }
+
+            val profileUpdates = builder.build()
 
             viewModelScope.launch {
                 try {
                     user.updateProfile(profileUpdates).await()
-                    // Reload user to get updated info
                     user.reload().await()
+                    
+                    // Cập nhật lại user để kích hoạt các collector
+                    _currentUser.value = null
                     _currentUser.value = FirebaseAuth.getInstance().currentUser
-                    _uiState.value = AuthUiState(isSuccess = true, message = "Cập nhật tên thành công")
+                    
+                    _uiState.value = AuthUiState(isSuccess = true, message = "Cập nhật thành công")
                 } catch (e: Exception) {
                     _uiState.value = AuthUiState(errorMessage = "Lỗi: ${e.message}")
                 }
             }
         }
     }
-
-//    fun sendPasswordResetEmail(email: String) {
-//        _uiState.value = AuthUiState(isLoading = true)
-//        viewModelScope.launch {
-//            try {
-//                FirebaseAuth.getInstance().sendPasswordResetEmail(email).await()
-//                _uiState.value = AuthUiState(isSuccess = true, message = "Đã gửi email đặt lại mật khẩu")
-//            } catch (e: Exception) {
-//                _uiState.value = AuthUiState(errorMessage = "Lỗi: ${e.message}")
-//            }
-//        }
-//    }
 
     fun logout() {
         repository.logout()
@@ -125,6 +123,7 @@ class AuthViewModel(
     }
     
     fun clearMessage() {
-        _uiState.value = _uiState.value.copy(message = null, errorMessage = null)
+        // Cần reset cả isSuccess về false để không bị lặp lại sự kiện trong LaunchedEffect
+        _uiState.value = _uiState.value.copy(errorMessage = null, message = null, isSuccess = false, isLoading = false)
     }
 }

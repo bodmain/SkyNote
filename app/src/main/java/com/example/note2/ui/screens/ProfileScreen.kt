@@ -2,14 +2,8 @@ package com.example.note2.ui.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -17,22 +11,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.note2.BuildConfig
 import com.example.note2.data.local.AppDatabase
+import com.example.note2.ui.components.*
 import com.example.note2.viewmodel.AuthViewModel
 import com.example.note2.viewmodel.SyncState
 import com.example.note2.viewmodel.ThemeViewModel
@@ -52,31 +47,49 @@ fun ProfileScreen(
     onBack: () -> Unit
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
-    var showEditNameDialog by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf(currentUser?.displayName ?: "") }
+    var showAvatarPicker by remember { mutableStateOf(false) }
+    var tempSelectedEmoji by remember { mutableStateOf("") }
     
     val themeMode by themeViewModel.themeMode.collectAsState()
+    val uiState by authViewModel.uiState.collectAsState()
     val isDark = themeMode == 2
     val context = LocalContext.current
+    val isGuest = currentUser == null
 
-    // Màu sắc thích ứng với Light/Dark Mode
-    val bgColor = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF7F5FF)
-    val purplePrimary = if (isDark) MaterialTheme.colorScheme.primary else Color(0xFF5533CC)
-    val purpleLight = if (isDark) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else Color(0xFFEDE9FF)
-    val textColor = MaterialTheme.colorScheme.onBackground
-    val sectionHeaderColor = if (isDark) MaterialTheme.colorScheme.primary else Color(0xFF5533CC)
+    LaunchedEffect(uiState.isSuccess) {
+        if (uiState.isSuccess) {
+            showAvatarPicker = false
+            authViewModel.clearMessage()
+        }
+    }
+
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val colorBackground = MaterialTheme.colorScheme.background
+    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+
+    val headerGradient = Brush.verticalGradient(
+        colors = listOf(
+            primaryContainer,
+            primaryContainer.copy(alpha = 0.8f),
+            colorBackground
+        )
+    )
 
     Scaffold(
-        containerColor = bgColor,
+        containerColor = colorBackground,
         topBar = {
-            TopAppBar(
-                title = { Text("Cá nhân & Cài đặt", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold) },
+            CenterAlignedTopAppBar(
+                title = { Text("Cá nhân", fontWeight = FontWeight.ExtraBold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = primaryContainer
+                )
             )
         }
     ) { padding ->
@@ -85,337 +98,211 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Profile
-            Spacer(modifier = Modifier.height(16.dp))
-            if (currentUser != null) {
-                val firstChar = currentUser.displayName?.firstOrNull()?.toString() ?: "U"
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(purpleLight),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = firstChar.uppercase(),
-                        style = MaterialTheme.typography.headlineLarge,
-                        color = purplePrimary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = currentUser.displayName ?: "Người dùng SkyNote",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = textColor
-                )
-                Text(
-                    text = currentUser.email ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(onClick = { showEditNameDialog = true }) {
-                    Text("Chỉnh sửa hồ sơ", color = purplePrimary, style = MaterialTheme.typography.labelLarge)
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "Khách", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = textColor)
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { 
-                        val db = AppDatabase.getDatabase(context)
-                        authViewModel.signInWithGoogle(context, db.noteDao()) 
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = purplePrimary),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("Đăng nhập bằng Google", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(headerGradient)
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = purpleLight.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(12.dp)
+                    color = Color.Transparent,
                 ) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Warning, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = "Dữ liệu chỉ lưu trên máy này — gỡ app là mất hết ghi chú.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = purplePrimary
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 40.dp, top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        ProfileHeader(
+                            currentUser = currentUser,
+                            photoUrl = currentUser?.photoUrl?.toString(),
+                            isGuest = isGuest,
+                            primaryColor = primaryColor,
+                            primaryContainer = surfaceColor,
+                            colorBackground = primaryContainer,
+                            onAvatarClick = { 
+                                tempSelectedEmoji = currentUser?.photoUrl?.toString() ?: ""
+                                showAvatarPicker = true 
+                            }
                         )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        if (!isGuest) {
+                            Text(
+                                text = currentUser?.displayName ?: "SkyNote User", 
+                                style = MaterialTheme.typography.headlineSmall, 
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = currentUser?.email ?: "", 
+                                style = MaterialTheme.typography.bodyMedium, 
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            ) {
+                                Button(
+                                    onClick = { authViewModel.signInWithGoogle(context, AppDatabase.getDatabase(context).noteDao()) },
+                                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.Login, null)
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text("Đăng nhập bằng Google", fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    "Đăng nhập để lưu dữ liệu và thay đổi avatar nhé ✨",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ModernCard(title = "Dữ liệu & Bảo mật") {
+                    ModernSettingItem(
+                        icon = Icons.Default.CloudSync,
+                        iconColor = if (syncState == SyncState.SUCCESS) Color(0xFF2E7D32) else Color(0xFF4CAF50),
+                        title = "Đồng bộ đám mây",
+                        subtitle = if (isGuest) "Yêu cầu đăng nhập" else when (syncState) {
+                            SyncState.SUCCESS -> "Đã đồng bộ thành công"
+                            SyncState.SYNCING -> "Đang xử lý..."
+                            else -> "Nhấn để sao lưu ngay"
+                        },
+                        containerColor = if (!isGuest && syncState == SyncState.SUCCESS) Color(0xFFE8F5E9) else Color.Transparent,
+                        trailing = {
+                            if (!isGuest && syncState == SyncState.SYNCING) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(if (isGuest) Icons.Default.Lock else Icons.Default.ChevronRight, null, modifier = Modifier.size(20.dp), tint = Color.Gray)
+                            }
+                        },
+                        enabled = !isGuest,
+                        onClick = onSyncClick
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = onSurfaceColor.copy(alpha = 0.08f))
+                    ModernSettingItem(
+                        icon = Icons.Default.DeleteSweep,
+                        iconColor = Color(0xFFFF7043),
+                        title = "Thùng rác",
+                        subtitle = "$noteCountInTrash ghi chú đã xóa",
+                        onClick = onNavigateToTrash
+                    )
+                }
 
-            // Sections
-            if (currentUser != null) {
-                SectionHeader("Tài khoản", sectionHeaderColor)
-                SettingItem(
-                    icon = Icons.Default.Badge,
-                    title = "Đổi tên hiển thị",
-                    purpleLight = purpleLight,
-                    purplePrimary = purplePrimary,
-                    textColor = textColor,
-                    onClick = { showEditNameDialog = true }
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-            }
+                Spacer(modifier = Modifier.height(16.dp))
 
-            SectionHeader("Giao diện", sectionHeaderColor)
-            SettingToggle(
-                icon = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
-                title = "Chế độ tối",
-                checked = isDark,
-                purpleLight = purpleLight,
-                purplePrimary = purplePrimary,
-                textColor = textColor,
-                onCheckedChange = { themeViewModel.toggleTheme(it) }
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-
-            SectionHeader("Dữ liệu", sectionHeaderColor)
-            if (currentUser != null) {
-                SettingToggle(
-                    icon = Icons.Default.CloudSync,
-                    title = "Đồng bộ tự động",
-                    checked = true, 
-                    purpleLight = purpleLight,
-                    purplePrimary = purplePrimary,
-                    textColor = textColor,
-                    onCheckedChange = { onSyncClick() },
-                    subtitle = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(if (syncState == SyncState.SUCCESS) Color.Green else if (syncState == SyncState.ERROR) Color.Red else Color.Gray)
+                ModernCard(title = "Tùy chỉnh giao diện") {
+                    ModernSettingItem(
+                        icon = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                        iconColor = Color(0xFFFFD600),
+                        title = "Chế độ tối",
+                        trailing = {
+                            Switch(
+                                checked = isDark,
+                                onCheckedChange = { themeViewModel.toggleTheme(it) },
+                                colors = SwitchDefaults.colors(checkedTrackColor = primaryColor)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ModernCard(title = "Thông tin ứng dụng") {
+                    ModernSettingItem(
+                        icon = Icons.Default.Info,
+                        iconColor = Color(0xFF00B0FF),
+                        title = "Phiên bản",
+                        subtitle = "Phiên bản ${BuildConfig.VERSION_NAME}",
+                        trailing = { Text("Mới nhất", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = onSurfaceColor.copy(alpha = 0.08f))
+                    ModernSettingItem(
+                        icon = Icons.Default.VerifiedUser,
+                        iconColor = Color(0xFF66BB6A),
+                        title = "Quyền riêng tư",
+                        onClick = { 
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://policies.google.com/privacy?hl=vi"))
+                            context.startActivity(intent)
+                        }
+                    )
+                }
+
+                if (!isGuest) {
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Surface(
+                        onClick = { showLogoutDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Logout, 
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                when (syncState) {
-                                    SyncState.SYNCING -> "Đang đồng bộ..."
-                                    SyncState.SUCCESS -> "Đã đồng bộ · 09:14"
-                                    SyncState.ERROR -> "Thất bại · Thử lại"
-                                    else -> "Sẵn sàng"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "Đăng xuất khỏi tài khoản", 
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.error
                             )
                         }
                     }
-                )
-            } else {
-                SettingItem(
-                    icon = Icons.Default.CloudSync,
-                    title = "Đồng bộ Firebase",
-                    purpleLight = purpleLight,
-                    purplePrimary = purplePrimary,
-                    textColor = textColor,
-                    subtitle = { Text("Yêu cầu đăng nhập", color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                    trailing = { Icon(Icons.Default.Lock, null, modifier = Modifier.size(18.dp), tint = Color.Gray) },
-                    enabled = false
-                )
-            }
-
-            
-            SettingItem(
-                icon = Icons.Default.FileUpload,
-                title = "Xuất dữ liệu",
-                purpleLight = purpleLight,
-                purplePrimary = purplePrimary,
-                textColor = textColor,
-                onClick = { /* Export logic */ }
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-
-            SectionHeader("Khác", sectionHeaderColor)
-            SettingItem(
-                icon = Icons.Default.PrivacyTip,
-                title = "Chính sách quyền riêng tư",
-                purpleLight = purpleLight,
-                purplePrimary = purplePrimary,
-                textColor = textColor,
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"))
-                    context.startActivity(intent)
                 }
-            )
-            SettingItem(
-                icon = Icons.Default.Info,
-                title = "Phiên bản app",
-                purpleLight = purpleLight,
-                purplePrimary = purplePrimary,
-                textColor = textColor,
-                subtitle = { Text(BuildConfig.VERSION_NAME, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            )
-
-            if (currentUser != null) {
-                Spacer(modifier = Modifier.height(32.dp))
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clickable { showLogoutDialog = true },
-                    color = if (isDark) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f) else Color(0xFFFFEBEE),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("Đăng xuất", color = Color.Red, fontWeight = FontWeight.Bold)
-                    }
-                }
+                
+                Spacer(modifier = Modifier.height(40.dp))
             }
-            Spacer(modifier = Modifier.height(40.dp))
         }
+    }
+
+    if (showAvatarPicker && !isGuest) {
+        AvatarPickerSheet(
+            tempSelectedEmoji = tempSelectedEmoji,
+            isLoading = uiState.isLoading,
+            primaryColor = primaryColor,
+            surfaceColor = surfaceColor,
+            onEmojiSelect = { tempSelectedEmoji = it },
+            onSave = { authViewModel.updateProfile(currentUser?.displayName ?: "", tempSelectedEmoji) },
+            onDismiss = { showAvatarPicker = false }
+        )
     }
 
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             title = { Text("Đăng xuất?") },
-            text = { Text("Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này?") },
+            text = { Text("Bạn có muốn đăng xuất? Mọi ghi chú mới chưa đồng bộ có thể bị mất.") },
             confirmButton = {
-                TextButton(onClick = {
-                    showLogoutDialog = false
-                    onLogout()
-                }) { Text("Đăng xuất", color = Color.Red) }
+                TextButton(onClick = { showLogoutDialog = false; onLogout() }) { Text("Đăng xuất", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("Hủy") }
-            }
+            dismissButton = { TextButton(onClick = { showLogoutDialog = false }) { Text("Hủy") } }
         )
     }
-
-    if (showEditNameDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditNameDialog = false },
-            title = { Text("Đổi tên hiển thị") },
-            text = {
-                TextField(
-                    value = newName,
-                    onValueChange = { newName = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    authViewModel.updateProfile(newName)
-                    showEditNameDialog = false
-                }) { Text("Lưu") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditNameDialog = false }) { Text("Hủy") }
-            }
-        )
-    }
-}
-
-@Composable
-fun SectionHeader(title: String, color: Color) {
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelSmall.copy(
-            fontSize = 11.sp,
-            letterSpacing = 1.sp,
-            fontWeight = FontWeight.Bold
-        ),
-        color = color,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-    )
-}
-
-@Composable
-fun SettingItem(
-    icon: ImageVector,
-    title: String,
-    purpleLight: Color,
-    purplePrimary: Color,
-    textColor: Color,
-    subtitle: @Composable (() -> Unit)? = null,
-    trailing: @Composable (() -> Unit)? = null,
-    enabled: Boolean = true,
-    onClick: (() -> Unit)? = null
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .alpha(if (enabled) 1f else 0.5f)
-            .clickable(enabled = enabled && onClick != null) { onClick?.invoke() },
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(purpleLight),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, null, tint = purplePrimary, modifier = Modifier.size(20.dp))
-        }
-        Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = textColor)
-            if (subtitle != null) {
-                subtitle()
-            }
-        }
-        if (trailing != null) {
-            trailing()
-        } else if (onClick != null) {
-            Icon(Icons.Default.ChevronRight, null, tint = Color.LightGray)
-        }
-    }
-}
-
-@Composable
-fun SettingToggle(
-    icon: ImageVector,
-    title: String,
-    checked: Boolean,
-    purpleLight: Color,
-    purplePrimary: Color,
-    textColor: Color,
-    onCheckedChange: (Boolean) -> Unit,
-    subtitle: @Composable (() -> Unit)? = null
-) {
-    SettingItem(
-        icon = icon,
-        title = title,
-        purpleLight = purpleLight,
-        purplePrimary = purplePrimary,
-        textColor = textColor,
-        subtitle = subtitle,
-        trailing = {
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = purplePrimary
-                )
-            )
-        }
-    )
 }

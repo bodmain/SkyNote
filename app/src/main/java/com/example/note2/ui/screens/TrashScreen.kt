@@ -9,12 +9,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.note2.ui.components.EmptyStateComponent
 import com.example.note2.ui.components.NoteItem
 import com.example.note2.viewmodel.NoteViewModel
 
@@ -48,21 +50,12 @@ fun TrashScreen(
         }
     ) { padding ->
         if (viewModel.deletedNotes.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Thùng rác trống", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "Ghi chú đã xóa sẽ xuất hiện ở đây",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            EmptyStateComponent(
+                icon = Icons.Default.DeleteSweep,
+                title = "Thùng rác trống không",
+                description = "Ghi chú bị xóa sẽ tạm nghỉ chân tại đây trước khi biến mất mãi mãi 🗑️",
+                modifier = Modifier.padding(padding)
+            )
         } else {
             Column(modifier = Modifier.padding(padding)) {
                 Surface(

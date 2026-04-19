@@ -1,6 +1,8 @@
 package com.example.note2.navigation
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -26,9 +28,30 @@ fun NavGraph(
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
-        modifier = modifier
+        modifier = modifier,
+        enterTransition = {
+            fadeIn(tween(400, easing = FastOutSlowInEasing)) + 
+            slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400, easing = FastOutSlowInEasing))
+        },
+        exitTransition = {
+            fadeOut(tween(400, easing = FastOutSlowInEasing)) + 
+            slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400, easing = FastOutSlowInEasing))
+        },
+        popEnterTransition = {
+            // Hiệu ứng Fade mượt mà khi quay lại màn hình trước
+            fadeIn(tween(400)) + scaleIn(initialScale = 0.95f, animationSpec = tween(400))
+        },
+        popExitTransition = {
+            fadeOut(tween(400)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.Right, tween(400))
+        }
     ) {
-        composable(Screen.Splash.route) {
+        composable(
+            route = Screen.Splash.route,
+            enterTransition = { fadeIn(tween(300)) },
+            exitTransition = {
+                fadeOut(tween(800)) + scaleOut(targetScale = 0.85f, animationSpec = tween(800))
+            }
+        ) {
             SplashScreen(
                 onNavigate = { route ->
                     navController.navigate(route) {
@@ -38,7 +61,16 @@ fun NavGraph(
             )
         }
 
-        composable(Screen.Home.route) {
+        composable(
+            route = Screen.Home.route,
+            enterTransition = {
+                if (initialState.destination.route == Screen.Splash.route) {
+                    fadeIn(tween(1000)) + scaleIn(initialScale = 1.1f, animationSpec = tween(1000))
+                } else {
+                    fadeIn(tween(400)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Left, tween(400))
+                }
+            }
+        ) {
             HomeScreen(
                 navController = navController,
                 viewModel = noteViewModel,

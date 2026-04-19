@@ -2,10 +2,13 @@ package com.example.note2.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.note2.navigation.Screen
 import com.example.note2.ui.components.*
@@ -87,12 +90,20 @@ fun HomeScreen(
                 onFilterSelected = { selectedFilter = it }
             )
             
-            NoteGrid(
-                notes = filteredNotes,
-                gridState = gridState,
-                onClick = onEditNote,
-                onDelete = { viewModel.showDeleteDialog(it) }
-            )
+            if (notes.isEmpty()) {
+                EmptyStateComponent(
+                    icon = Icons.Default.NoteAdd,
+                    title = "Chưa có ghi chú nào",
+                    description = "Hãy bắt đầu ghi lại những ý tưởng tuyệt vời của bạn ngay bây giờ ✨"
+                )
+            } else {
+                NoteGrid(
+                    notes = filteredNotes,
+                    gridState = gridState,
+                    onClick = onEditNote,
+                    onDelete = { viewModel.showDeleteDialog(it) }
+                )
+            }
         }
 
         viewModel.noteToDelete?.let {

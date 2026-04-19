@@ -83,7 +83,8 @@ fun NoteDetailScreen(
                 color = selectedColor,
                 reminderTime = reminderTime,
                 labels = labels,
-                checklist = if (isChecklistEnabled) checklist else emptyList()
+                checklist = if (isChecklistEnabled) checklist else emptyList(),
+                timestamp = System.currentTimeMillis()
             )
             viewModel.saveNote(context, note)
         }
@@ -104,6 +105,20 @@ fun NoteDetailScreen(
                     }
                 },
                 actions = {
+                    TextButton(
+                        onClick = { 
+                            onSave()
+                            onBack()
+                        }
+                    ) {
+                        Text(
+                            "Lưu",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     IconButton(onClick = { isPinned = !isPinned }) {
                         Icon(
                             if (isPinned) Icons.Default.PushPin else Icons.Default.PushPin,

@@ -1,61 +1,71 @@
 package com.example.note2.ui.screens
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Note
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.note2.navigation.Screen
+import com.example.note2.ui.theme.PrimaryPurple
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
     onNavigate: (String) -> Unit
 ) {
-    val scale = remember { Animatable(0.5f) }
+    val scale = remember { Animatable(0.6f) }
     val alpha = remember { Animatable(0f) }
 
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val starAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "star_alpha"
+    )
+
     LaunchedEffect(Unit) {
-        launch {
-            scale.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(1000)
+        scale.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
             )
-        }
-        launch {
-            alpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(1000)
-            )
-        }
-        delay(2000)
+        )
+        alpha.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(800)
+        )
+        
+        delay(1800)
         onNavigate(Screen.Home.route)
     }
 
+    // 2. Giao diện với Gradient
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF001D36),
-                        Color(0xFF00497D),
-                        Color(0xFF0061A4)
+                        PrimaryPurple,
+                        PrimaryPurple.copy(alpha = 0.8f),
+                        Color(0xFF8E74FF)
                     )
                 )
             ),
@@ -63,36 +73,63 @@ fun SplashScreen(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
-                this.alpha = alpha.value
-            }
+            modifier = Modifier
+                .scale(scale.value)
+                .alpha(alpha.value)
         ) {
-            Icon(
-                imageVector = Icons.Default.Note,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(120.dp)
-            )
+            // (Logo app)
+            Box(contentAlignment = Alignment.TopEnd) {
+                Icon(
+                    imageVector = Icons.Default.Description,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(100.dp)
+                )
+                // Icon ngôi sao
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color.Yellow,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .offset(x = 8.dp, y = (-8).dp)
+                        .alpha(starAlpha)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Tên ứng dụng
             Text(
                 text = "SkyNote",
-                style = MaterialTheme.typography.headlineLarge.copy(
-                    fontWeight = FontWeight.ExtraBold
+                style = MaterialTheme.typography.displayMedium.copy(
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 2.sp
                 ),
                 color = Color.White
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // Slogan
             Text(
-                text = "Ghi chú ý tưởng của bạn ✨",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.9f)
+                text = "Lưu giữ mọi ý tưởng của bạn",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = Color.White.copy(alpha = 0.8f)
             )
         }
+        
+
+        Text(
+            text = "Design with ✨ by QTeam",
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 32.dp)
+                .alpha(0.5f),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White
+        )
     }
 }

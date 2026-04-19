@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
+import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.note2.data.model.NotificationModel
+import com.example.note2.ui.components.EmptyStateComponent
 import com.example.note2.viewmodel.NoteViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -53,18 +55,12 @@ fun NotificationScreen(
         }
     ) { innerPadding ->
         if (notifications.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Không có thông báo nào",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
+            EmptyStateComponent(
+                icon = Icons.Default.NotificationsNone,
+                title = "Mọi thứ đều yên tĩnh",
+                description = "Bạn không có thông báo nào lúc này. Lời nhắc ghi chú sẽ xuất hiện ở đây ✨",
+                modifier = Modifier.padding(innerPadding)
+            )
         } else {
             LazyColumn(
                 modifier = Modifier

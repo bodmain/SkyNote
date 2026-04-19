@@ -7,7 +7,7 @@ val PrimaryPurple = Color(0xFF5533CC)
 val PrimaryLight = Color(0xFF8866FF)
 val BackgroundLight = Color(0xFFFBFBFF)
 
-// 5 Màu Pastel cho Note theo yêu cầu
+// 5 Màu Pastel cho Note
 val NotePink = Color(0xFFFFECE8)
 val NoteMint = Color(0xFFE0F7F0)
 val NoteLavender = Color(0xFFEDE9FF)

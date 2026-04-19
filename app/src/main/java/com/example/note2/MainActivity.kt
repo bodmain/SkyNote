@@ -13,16 +13,20 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -67,18 +71,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             val currentTheme by themeViewModel.themeMode.collectAsState()
             val currentUser by authViewModel.currentUser.collectAsState()
+            val uiState by authViewModel.uiState.collectAsState()
 
             Note2Theme(themeMode = currentTheme) {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
 
-                val bottomNavScreens = listOf(Screen.Home.route, Screen.Trash.route, Screen.Profile.route)
+                // CHỈ GIỮ LẠI Trang chủ và Cá nhân ở Bottom Bar
+                val bottomNavScreens = listOf(Screen.Home.route, Screen.Profile.route)
                 val showBottomNav = currentDestination?.route in bottomNavScreens
 
                 Scaffold(
                     bottomBar = {
-                        // Sử dụng AnimatedVisibility để BottomBar xuất hiện/biến mất mượt mà
                         AnimatedVisibility(
                             visible = showBottomNav,
                             enter = fadeIn() + expandVertically(),
@@ -88,18 +93,39 @@ class MainActivity : ComponentActivity() {
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 tonalElevation = 0.dp
                             ) {
-                                listOf(Screen.Home, Screen.Trash, Screen.Profile).forEach { screen ->
+                                listOf(Screen.Home, Screen.Profile).forEach { screen ->
                                     NavigationBarItem(
                                         icon = {
-                                            if (screen == Screen.Profile && currentUser?.photoUrl != null) {
-                                                AsyncImage(
-                                                    model = currentUser!!.photoUrl,
-                                                    contentDescription = null,
-                                                    modifier = Modifier
-                                                        .size(24.dp)
-                                                        .clip(CircleShape),
-                                                    contentScale = ContentScale.Crop
-                                                )
+                                            if (screen == Screen.Profile && currentUser != null) {
+                                                val photoUrl = currentUser?.photoUrl?.toString()
+                                                key(photoUrl, uiState.isSuccess) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(26.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        if (photoUrl != null) {
+                                                            if (photoUrl.startsWith("http") || photoUrl.startsWith("content")) {
+                                                                AsyncImage(
+                                                                    model = photoUrl,
+                                                                    contentDescription = null,
+                                                                    modifier = Modifier.fillMaxSize(),
+                                                                    contentScale = ContentScale.Crop
+                                                                )
+                                                            } else {
+                                                                Text(text = photoUrl, fontSize = 16.sp)
+                                                            }
+                                                        } else {
+                                                            Text(
+                                                                text = currentUser?.displayName?.firstOrNull()?.toString()?.uppercase() ?: "S",
+                                                                fontSize = 12.sp,
+                                                                color = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             } else {
                                                 screen.icon?.let { Icon(it, contentDescription = null) }
                                             }

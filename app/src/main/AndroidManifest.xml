@@ -26,7 +26,7 @@
             </intent-filter>
         </service>
 
-        <!-- ⏰ Notification Receiver (Daily & Notes) -->
+        <!--  Notification Receiver (Daily & Notes) -->
         <receiver
             android:name=".receiver.NoteNotificationReceiver"
             android:enabled="true"

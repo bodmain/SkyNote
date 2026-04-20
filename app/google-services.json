@@ -1,18 +1,24 @@
 {
   "project_info": {
     "project_number": "604598598696",
+    "firebase_url": "https://notesapp-40190-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "notesapp-40190",
     "storage_bucket": "notesapp-40190.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:604598598696:android:bfe7067f1d04e27864891d",
+        "mobilesdk_app_id": "1:604598598696:android:36434a7878d2ae2964891d",
         "android_client_info": {
-          "package_name": "com.example.note2"
+          "package_name": "com.bodmain.SkyNote"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCGWraq62BvRW5Vk35iIMUYT9RmfRS3Gts"
@@ -20,7 +26,57 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:604598598696:android:bfe7067f1d04e27864891d",
+        "android_client_info": {
+          "package_name": "com.example.note2"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "604598598696-h5ibq53b5pstl1pa4g49hbakirdaf003.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.note2",
+            "certificate_hash": "e8f934b7e0482129988158ff51bd574ec313c612"
+          }
+        },
+        {
+          "client_id": "604598598696-o9psc22ndjmhg3ovghguvmb1ivr3bdm8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.note2",
+            "certificate_hash": "df5e5f411d6bd8b3e82abaf148b50a0e9aa6dd10"
+          }
+        },
+        {
+          "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGWraq62BvRW5Vk35iIMUYT9RmfRS3Gts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

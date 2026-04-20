@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.note2"
+    namespace = "com.example.SkyNote"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.note2"
+        applicationId = "com.bodmain.SkyNote"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -20,13 +20,26 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = "key0"
+            keyPassword = "quan123456"
+            storeFile = file("keystore/skynote.jks")
+            storePassword = "quan123456"
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+
+
         }
     }
     compileOptions {

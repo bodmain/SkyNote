@@ -1,21 +1,22 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# 1. Giữ lại các thuộc tính Generic và Annotation cần thiết cho Firebase/Room
+-keepattributes Signature, *Annotation*, EnclosingMethod, InnerClasses
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# 2. Giữ lại các class của Gson
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# 3. Giữ nguyên các class Model (Quan trọng nhất)
+# Điều này ngăn R8 đổi tên các trường khiến Firestore không thể đọc/ghi dữ liệu
+-keep class com.example.SkyNote.data.model.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# 4. Giữ lại các class và members phục vụ cho Reflection (Firestore/Room)
+-keepclassmembers class com.example.SkyNote.data.model.** {
+    <fields>;
+    <init>();
+}
+
+# 5. Các quy tắc bổ sung cho Firebase và Google Play Services
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**

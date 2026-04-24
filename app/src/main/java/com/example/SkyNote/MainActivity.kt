@@ -77,8 +77,6 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
-
-                // CHỈ GIỮ LẠI Trang chủ và Cá nhân ở Bottom Bar
                 val bottomNavScreens = listOf(Screen.Home.route, Screen.Profile.route)
                 val showBottomNav = currentDestination?.route in bottomNavScreens
 

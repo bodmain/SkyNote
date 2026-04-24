@@ -15,6 +15,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "604598598696-441hdhqrrjsi0ufc0s7fteh9d98akhi4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bodmain.SkyNote",
+            "certificate_hash": "f65ad4945e683edcc030e535e8a97f4a51b16a05"
+          }
+        },
+        {
+          "client_id": "604598598696-sr7o7f4uj95801rm3j2n5tlvv443hrpd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bodmain.SkyNote",
+            "certificate_hash": "e8f934b7e0482129988158ff51bd574ec313c612"
+          }
+        },
+        {
+          "client_id": "604598598696-u79ghmsp7gs0fg3mjip6i4nh9ekonpg0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bodmain.SkyNote",
+            "certificate_hash": "df5e5f411d6bd8b3e82abaf148b50a0e9aa6dd10"
+          }
+        },
+        {
           "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -48,7 +48,8 @@ fun HomeScreen(
     }
 
     LaunchedEffect(currentUser) {
-        viewModel.startObservingData(currentUser?.uid ?: NoteViewModel.GUEST_USER_ID)
+        // FIX: startObservingData không nhận tham số
+        viewModel.startObservingData()
     }
 
     val filteredNotes = remember(notes, searchQuery, selectedFilter) {

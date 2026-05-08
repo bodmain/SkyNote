@@ -23,6 +23,14 @@
           }
         },
         {
+          "client_id": "604598598696-gkvg3frn98iuqgiu4jd8fmcth46diei9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bodmain.SkyNote",
+            "certificate_hash": "19f88c2df798760f4cafd220a26654abeb1d437b"
+          }
+        },
+        {
           "client_id": "604598598696-sr7o7f4uj95801rm3j2n5tlvv443hrpd.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -35,51 +43,6 @@
           "client_type": 1,
           "android_info": {
             "package_name": "com.bodmain.SkyNote",
-            "certificate_hash": "df5e5f411d6bd8b3e82abaf148b50a0e9aa6dd10"
-          }
-        },
-        {
-          "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCGWraq62BvRW5Vk35iIMUYT9RmfRS3Gts"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "604598598696-020a1ot52ft3crenqbpflhllfhriqrbc.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:604598598696:android:bfe7067f1d04e27864891d",
-        "android_client_info": {
-          "package_name": "com.example.note2"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "604598598696-h5ibq53b5pstl1pa4g49hbakirdaf003.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.note2",
-            "certificate_hash": "e8f934b7e0482129988158ff51bd574ec313c612"
-          }
-        },
-        {
-          "client_id": "604598598696-o9psc22ndjmhg3ovghguvmb1ivr3bdm8.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.note2",
             "certificate_hash": "df5e5f411d6bd8b3e82abaf148b50a0e9aa6dd10"
           }
         },

@@ -112,7 +112,7 @@ class NoteNotificationReceiver : BroadcastReceiver() {
                             .collection("notes").document(updatedNote.id)
                             .set(updatedNote)
                     } catch (e: Exception) {
-                        Log.e("Reminder", "Error syncing reminded status: ${e.message}")
+                        Log.e("Reminder", "Error syncing: ${e.message}")
                     }
                 }
             }
@@ -120,8 +120,9 @@ class NoteNotificationReceiver : BroadcastReceiver() {
     }
 
     companion object {
-        const val ACTION_DAILY_REMINDER = "com.example.note2.ACTION_DAILY_REMINDER"
-        const val ACTION_NOTE_REMINDER = "com.example.note2.ACTION_NOTE_REMINDER"
+        // PHẢI KHỚP VỚI APPLICATION ID TRONG GRADLE
+        const val ACTION_DAILY_REMINDER = "com.bodmain.SkyNote.ACTION_DAILY_REMINDER"
+        const val ACTION_NOTE_REMINDER = "com.bodmain.SkyNote.ACTION_NOTE_REMINDER"
 
         fun scheduleNoteReminder(context: Context, noteId: String, title: String, description: String, timeInMillis: Long) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -148,7 +149,6 @@ class NoteNotificationReceiver : BroadcastReceiver() {
             } else {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, timeInMillis, pendingIntent)
             }
-            Log.d("Reminder", "Scheduled reminder for note $noteId at $timeInMillis")
         }
 
         fun cancelNoteReminder(context: Context, noteId: String) {

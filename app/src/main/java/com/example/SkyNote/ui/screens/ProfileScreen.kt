@@ -51,28 +51,22 @@ fun ProfileScreen(
     var tempSelectedEmoji by remember { mutableStateOf("") }
     
     val themeMode by themeViewModel.themeMode.collectAsState()
+    val autoSyncEnabled by themeViewModel.autoSyncEnabled.collectAsState()
     val uiState by authViewModel.uiState.collectAsState()
+    
     val isDark = themeMode == 2
     val context = LocalContext.current
     val isGuest = currentUser == null
 
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
-            showAvatarPicker = false
-            authViewModel.clearMessage()
-        }
-    }
-
-    val primaryColor = MaterialTheme.colorScheme.primary
+    // Adaptive colors for Dark/Light mode
     val colorBackground = MaterialTheme.colorScheme.background
     val primaryContainer = MaterialTheme.colorScheme.primaryContainer
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val onSurfaceColor = MaterialTheme.colorScheme.onSurface
+    val purplePrimary = MaterialTheme.colorScheme.primary
 
     val headerGradient = Brush.verticalGradient(
         colors = listOf(
-            primaryContainer,
-            primaryContainer.copy(alpha = 0.8f),
+            primaryContainer.copy(alpha = if (isDark) 0.3f else 0.5f),
             colorBackground
         )
     )
@@ -81,14 +75,14 @@ fun ProfileScreen(
         containerColor = colorBackground,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Cá nhân", fontWeight = FontWeight.ExtraBold) },
+                title = { Text("Cá nhân", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = primaryContainer
+                    containerColor = colorBackground
                 )
             )
         }
@@ -99,93 +93,73 @@ fun ProfileScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Header Section
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(headerGradient)
+                    .padding(vertical = 32.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color.Transparent,
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 40.dp, top = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        ProfileHeader(
-                            currentUser = currentUser,
-                            photoUrl = currentUser?.photoUrl?.toString(),
-                            isGuest = isGuest,
-                            primaryColor = primaryColor,
-                            primaryContainer = surfaceColor,
-                            colorBackground = primaryContainer,
-                            onAvatarClick = { 
-                                tempSelectedEmoji = currentUser?.photoUrl?.toString() ?: ""
-                                showAvatarPicker = true 
-                            }
-                        )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    ProfileHeader(
+                        currentUser = currentUser,
+                        photoUrl = currentUser?.photoUrl?.toString(),
+                        isGuest = isGuest,
+                        primaryColor = purplePrimary,
+                        primaryContainer = surfaceColor,
+                        colorBackground = colorBackground,
+                        onAvatarClick = { 
+                            tempSelectedEmoji = currentUser?.photoUrl?.toString() ?: ""
+                            showAvatarPicker = true 
+                        }
+                    )
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        if (!isGuest) {
-                            Text(
-                                text = currentUser?.displayName ?: "SkyNote User", 
-                                style = MaterialTheme.typography.headlineSmall, 
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = currentUser?.email ?: "", 
-                                style = MaterialTheme.typography.bodyMedium, 
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            )
-                        } else {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(horizontal = 24.dp)
-                            ) {
-                                Button(
-                                    onClick = { authViewModel.signInWithGoogle(context, AppDatabase.getDatabase(context).noteDao()) },
-                                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
-                                ) {
-                                    Icon(Icons.AutoMirrored.Filled.Login, null)
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text("Đăng nhập bằng Google", fontWeight = FontWeight.Bold)
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    "Đăng nhập để lưu dữ liệu và thay đổi avatar nhé ✨",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                                )
-                            }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    if (!isGuest) {
+                        Text(
+                            text = currentUser?.displayName ?: "SkyNote User", 
+                            style = MaterialTheme.typography.headlineSmall, 
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = currentUser?.email ?: "", 
+                            style = MaterialTheme.typography.bodyMedium, 
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Button(
+                            onClick = { authViewModel.signInWithGoogle(context, AppDatabase.getDatabase(context).noteDao()) },
+                            modifier = Modifier.padding(horizontal = 32.dp).fillMaxWidth().height(52.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = purplePrimary)
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Login, null)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Đăng nhập bằng Google", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                ModernCard(title = "Dữ liệu & Bảo mật") {
+                // Nhóm Dữ liệu
+                ModernCard(title = "Dữ liệu & Đồng bộ") {
                     ModernSettingItem(
                         icon = Icons.Default.CloudSync,
-                        iconColor = if (syncState == SyncState.SUCCESS) Color(0xFF2E7D32) else Color(0xFF4CAF50),
+                        iconColor = purplePrimary,
                         title = "Đồng bộ đám mây",
                         subtitle = if (isGuest) "Yêu cầu đăng nhập" else when (syncState) {
                             SyncState.SUCCESS -> "Đã đồng bộ thành công"
-                            SyncState.SYNCING -> "Đang xử lý..."
+                            SyncState.SYNCING -> "Đang đồng bộ..."
+                            SyncState.ERROR -> "Đồng bộ thất bại"
                             else -> "Nhấn để sao lưu ngay"
                         },
-                        containerColor = if (!isGuest && syncState == SyncState.SUCCESS) Color(0xFFE8F5E9) else Color.Transparent,
                         trailing = {
                             if (!isGuest && syncState == SyncState.SYNCING) {
                                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -196,7 +170,44 @@ fun ProfileScreen(
                         enabled = !isGuest,
                         onClick = onSyncClick
                     )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = onSurfaceColor.copy(alpha = 0.08f))
+                    
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    
+                    ModernSettingItem(
+                        icon = Icons.Default.Autorenew,
+                        iconColor = if (autoSyncEnabled) purplePrimary else Color.Gray,
+                        title = "Đồng bộ tự động",
+                        subtitle = "Tự động lưu thay đổi lên Cloud",
+                        enabled = !isGuest,
+                        trailing = {
+                            Switch(
+                                checked = autoSyncEnabled,
+                                onCheckedChange = { themeViewModel.toggleAutoSync(it) },
+                                enabled = !isGuest
+                            )
+                        }
+                    )
+                }
+
+                // Nhóm Giao diện
+                ModernCard(title = "Tùy chỉnh giao diện") {
+                    ModernSettingItem(
+                        icon = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                        iconColor = Color(0xFFFFD600),
+                        title = "Chế độ tối",
+                        subtitle = if (isDark) "Đang sử dụng chế độ tối" else "Đang sử dụng chế độ sáng",
+                        trailing = {
+                            Switch(
+                                checked = isDark,
+                                onCheckedChange = { themeViewModel.toggleTheme(it) },
+                                colors = SwitchDefaults.colors(checkedTrackColor = purplePrimary)
+                            )
+                        }
+                    )
+                }
+
+                // Thùng rác & Khác
+                ModernCard(title = "Khác") {
                     ModernSettingItem(
                         icon = Icons.Default.DeleteSweep,
                         iconColor = Color(0xFFFF7043),
@@ -204,57 +215,25 @@ fun ProfileScreen(
                         subtitle = "$noteCountInTrash ghi chú đã xóa",
                         onClick = onNavigateToTrash
                     )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                ModernCard(title = "Tùy chỉnh giao diện") {
-                    ModernSettingItem(
-                        icon = if (isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
-                        iconColor = Color(0xFFFFD600),
-                        title = "Chế độ tối",
-                        trailing = {
-                            Switch(
-                                checked = isDark,
-                                onCheckedChange = { themeViewModel.toggleTheme(it) },
-                                colors = SwitchDefaults.colors(checkedTrackColor = primaryColor)
-                            )
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                ModernCard(title = "Thông tin ứng dụng") {
-                    ModernSettingItem(
-                        icon = Icons.Default.Info,
-                        iconColor = Color(0xFF00B0FF),
-                        title = "Phiên bản",
-                        subtitle = "Phiên bản ${BuildConfig.VERSION_NAME}",
-                        trailing = { Text("Mới nhất", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 12.sp) }
-                    )
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = onSurfaceColor.copy(alpha = 0.08f))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     ModernSettingItem(
                         icon = Icons.Default.VerifiedUser,
                         iconColor = Color(0xFF66BB6A),
-                        title = "Quyền riêng tư",
+                        title = "Chính sách quyền riêng tư",
                         onClick = { 
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://policies.google.com/privacy?hl=vi"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://policies.google.com/privacy"))
                             context.startActivity(intent)
                         }
                     )
                 }
 
                 if (!isGuest) {
-                    Spacer(modifier = Modifier.height(32.dp))
-
+                    Spacer(modifier = Modifier.height(16.dp))
                     Surface(
                         onClick = { showLogoutDialog = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
+                        modifier = Modifier.fillMaxWidth().height(56.dp).padding(vertical = 4.dp),
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.12f),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = if (isDark) 0.2f else 0.12f),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f))
                     ) {
                         Row(
@@ -262,22 +241,22 @@ fun ProfileScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Logout, 
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
+                            Icon(Icons.AutoMirrored.Filled.Logout, null, tint = MaterialTheme.colorScheme.error)
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Đăng xuất khỏi tài khoản", 
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                            Text("Đăng xuất tài khoản", fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(40.dp))
+                Text(
+                    text = "SkyNote v${BuildConfig.VERSION_NAME}",
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
+                
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -286,7 +265,7 @@ fun ProfileScreen(
         AvatarPickerSheet(
             tempSelectedEmoji = tempSelectedEmoji,
             isLoading = uiState.isLoading,
-            primaryColor = primaryColor,
+            primaryColor = purplePrimary,
             surfaceColor = surfaceColor,
             onEmojiSelect = { tempSelectedEmoji = it },
             onSave = { authViewModel.updateProfile(currentUser?.displayName ?: "", tempSelectedEmoji) },
@@ -300,9 +279,13 @@ fun ProfileScreen(
             title = { Text("Đăng xuất?") },
             text = { Text("Bạn có muốn đăng xuất? Mọi ghi chú mới chưa đồng bộ có thể bị mất.") },
             confirmButton = {
-                TextButton(onClick = { showLogoutDialog = false; onLogout() }) { Text("Đăng xuất", color = MaterialTheme.colorScheme.error) }
+                TextButton(onClick = { showLogoutDialog = false; onLogout() }) { 
+                    Text("Đăng xuất", color = MaterialTheme.colorScheme.error) 
+                }
             },
-            dismissButton = { TextButton(onClick = { showLogoutDialog = false }) { Text("Hủy") } }
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Hủy") }
+            }
         )
     }
 }

@@ -19,7 +19,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withTimeout
+import java.util.UUID
 
 enum class SyncState { IDLE, SYNCING, SUCCESS, ERROR }
 
@@ -39,6 +42,13 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     var syncState by mutableStateOf(SyncState.IDLE)
         private set
 
+    var isSearchActive by mutableStateOf(false)
+        private set
+    var searchText by mutableStateOf("")
+        private set
+    var searchResults by mutableStateOf<List<NoteModel>>(emptyList())
+        private set
+
     var noteToDelete by mutableStateOf<NoteModel?>(null)
         private set
 
@@ -51,12 +61,12 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     val notifications: StateFlow<List<NotificationModel>> = _notifications
 
     init {
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
-        startObservingData(currentUserId)
+        startObservingData()
         cleanOldDeletedNotes()
     }
 
-    fun startObservingData(userId: String) {
+    fun startObservingData() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
         startObservingNotes(userId)
         startObservingDeletedNotes(userId)
         startObservingNotifications(userId)
@@ -107,6 +117,29 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         }
     }
 
+    // Hàm hợp nhất để NoteDetailScreen gọi
+    fun saveNote(context: Context, note: NoteModel) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+        val noteToSave = note.copy(userId = userId, timestamp = System.currentTimeMillis())
+        
+        viewModelScope.launch {
+            repository.insertNote(noteToSave)
+            
+            // Xử lý nhắc nhở
+            if (noteToSave.reminderTime != null && noteToSave.reminderTime > System.currentTimeMillis() && !noteToSave.isDeleted) {
+                NoteNotificationReceiver.scheduleNoteReminder(
+                    context, noteToSave.id, noteToSave.title, noteToSave.description, noteToSave.reminderTime
+                )
+            } else {
+                NoteNotificationReceiver.cancelNoteReminder(context, noteToSave.id)
+            }
+
+            if (userId != GUEST_USER_ID) {
+                try { repository.syncNoteToFirestore(noteToSave) } catch (e: Exception) {}
+            }
+        }
+    }
+
     fun syncAllNotes() {
         if (syncState != SyncState.IDLE) return
         val user = FirebaseAuth.getInstance().currentUser
@@ -115,18 +148,18 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             viewModelScope.launch { delay(2000); syncState = SyncState.IDLE }
             return
         }
-
         viewModelScope.launch {
             syncState = SyncState.SYNCING
             try {
-                val notesToSync = notes.map { it.copy(userId = user.uid) }
-                withTimeout(15000) { repository.syncNotesToFirestore(notesToSync, user.uid) }
+                withTimeout(15000) { repository.syncNotesToFirestore(notes, user.uid) }
                 syncState = SyncState.SUCCESS
             } catch (e: Exception) {
                 syncState = SyncState.ERROR
             } finally {
-                delay(2000)
-                syncState = SyncState.IDLE
+                withContext(NonCancellable) {
+                    delay(2000)
+                    syncState = SyncState.IDLE
+                }
             }
         }
     }
@@ -140,30 +173,61 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         deletedNotes = emptyList()
         _notifications.value = emptyList()
         syncState = SyncState.IDLE
+        startObservingData()
     }
 
-    fun saveNote(context: Context, note: NoteModel) {
-        val user = FirebaseAuth.getInstance().currentUser
-        val userId = user?.uid ?: GUEST_USER_ID
-        val noteToSave = note.copy(userId = userId, timestamp = System.currentTimeMillis())
-
+    fun addNote(title: String, description: String, color: Long = 0xFFFFFFFF, imagePath: String? = null, isChecklist: Boolean = false) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+        val newNote = NoteModel(
+            title = title,
+            description = description,
+            color = color,
+            userId = userId,
+            imagePath = imagePath,
+            isChecklist = isChecklist
+        )
         viewModelScope.launch {
-            repository.insertNote(noteToSave)
-
-            if (noteToSave.reminderTime != null && noteToSave.reminderTime > System.currentTimeMillis() && !noteToSave.isDeleted) {
-                NoteNotificationReceiver.scheduleNoteReminder(
-                    context,
-                    noteToSave.id,
-                    noteToSave.title.ifBlank { "Ghi chú của bạn" },
-                    noteToSave.description.ifBlank { "Nhấp để xem chi tiết" },
-                    noteToSave.reminderTime
-                )
-            } else {
-                NoteNotificationReceiver.cancelNoteReminder(context, noteToSave.id)
-            }
-
+            repository.insertNote(newNote)
             if (userId != GUEST_USER_ID) {
-                try { repository.syncNoteToFirestore(noteToSave) } catch (e: Exception) {}
+                try { repository.syncNoteToFirestore(newNote) } catch (e: Exception) {}
+            }
+        }
+    }
+
+    fun addChecklistNote() : String {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
+        val newId = UUID.randomUUID().toString()
+        val newNote = NoteModel(
+            id = newId,
+            title = "",
+            description = "[ ] ",
+            userId = userId,
+            isChecklist = true
+        )
+        viewModelScope.launch {
+            repository.insertNote(newNote)
+            if (userId != GUEST_USER_ID) {
+                try { repository.syncNoteToFirestore(newNote) } catch (e: Exception) {}
+            }
+        }
+        return newId
+    }
+
+    fun updateNote(note: NoteModel) {
+        val updatedNote = note.copy(timestamp = System.currentTimeMillis())
+        viewModelScope.launch {
+            repository.updateNote(updatedNote)
+            if (updatedNote.userId != GUEST_USER_ID) {
+                try { repository.syncNoteToFirestore(updatedNote) } catch (e: Exception) {}
+            }
+        }
+    }
+
+    fun deleteNote(note: NoteModel) {
+        viewModelScope.launch {
+            repository.deleteNote(note)
+            if (note.userId != GUEST_USER_ID) {
+                try { repository.deleteNoteFromFirestore(note.id, note.userId) } catch (e: Exception) {}
             }
         }
     }
@@ -173,9 +237,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
             val updatedNote = note.copy(isDeleted = true, timestamp = System.currentTimeMillis())
             repository.updateNote(updatedNote)
             NoteNotificationReceiver.cancelNoteReminder(context, note.id)
-
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            if (userId != null && userId != GUEST_USER_ID) {
+            if (updatedNote.userId != GUEST_USER_ID) {
                 repository.syncNoteToFirestore(updatedNote)
             }
         }
@@ -185,8 +247,7 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         viewModelScope.launch {
             val updatedNote = note.copy(isDeleted = false, timestamp = System.currentTimeMillis())
             repository.updateNote(updatedNote)
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            if (userId != null && userId != GUEST_USER_ID) {
+            if (updatedNote.userId != GUEST_USER_ID) {
                 repository.syncNoteToFirestore(updatedNote)
             }
         }
@@ -196,10 +257,8 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         viewModelScope.launch {
             repository.deleteNote(note)
             NoteNotificationReceiver.cancelNoteReminder(context, note.id)
-
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            if (userId != null && userId != GUEST_USER_ID) {
-                try { repository.deleteNoteFromFirestore(note.id, userId) } catch (e: Exception) {}
+            if (note.userId != GUEST_USER_ID) {
+                try { repository.deleteNoteFromFirestore(note.id, note.userId) } catch (e: Exception) {}
             }
         }
     }
@@ -212,15 +271,20 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
         viewModelScope.launch {
             val thirtyDaysAgo = System.currentTimeMillis() - THIRTY_DAYS_IN_MILLIS
             deletedNotes.forEach { note ->
-                if (note.timestamp < thirtyDaysAgo) {
-                    repository.deleteNote(note)
-                    val userId = FirebaseAuth.getInstance().currentUser?.uid
-                    if (userId != null && userId != GUEST_USER_ID) {
-                        try { repository.deleteNoteFromFirestore(note.id, userId) } catch (e: Exception) {}
-                    }
-                }
+                if (note.timestamp < thirtyDaysAgo) { repository.deleteNote(note) }
             }
         }
+    }
+
+    fun filterNotes(query: String) {
+        searchText = query
+        searchResults = if (query.isEmpty()) emptyList()
+        else notes.filter { it.title.contains(query, ignoreCase = true) || it.description.contains(query, ignoreCase = true) }
+    }
+
+    fun toggleSearch() {
+        isSearchActive = !isSearchActive
+        if (!isSearchActive) { searchText = ""; searchResults = emptyList() }
     }
 
     fun showDeleteDialog(note: NoteModel) { noteToDelete = note }
@@ -231,41 +295,23 @@ class NoteViewModel(private val repository: NoteRepository) : ViewModel() {
     }
 
     fun togglePin(context: Context, note: NoteModel) {
-        saveNote(context, note.copy(isPinned = !note.isPinned))
-    }
-
-    fun updateColor(context: Context, note: NoteModel, color: Long) {
-        saveNote(context, note.copy(color = color))
-    }
-
-    fun updateReminder(context: Context, note: NoteModel, time: Long?) {
-        saveNote(context, note.copy(reminderTime = time))
-    }
-
-    fun updateLabels(context: Context, note: NoteModel, labels: List<String>) {
-        saveNote(context, note.copy(labels = labels))
-    }
-
-    fun updateChecklist(context: Context, note: NoteModel, checklist: List<ChecklistItem>) {
-        saveNote(context, note.copy(checklist = checklist))
+        val updatedNote = note.copy(isPinned = !note.isPinned, timestamp = System.currentTimeMillis())
+        viewModelScope.launch {
+            repository.updateNote(updatedNote)
+            if (updatedNote.userId != GUEST_USER_ID) { repository.syncNoteToFirestore(updatedNote) }
+        }
     }
 
     fun markAllNotificationsAsRead() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: GUEST_USER_ID
-        viewModelScope.launch {
-            repository.markAllAsRead(userId)
-        }
+        viewModelScope.launch { repository.markAllAsRead(userId) }
     }
 
     fun markNotificationAsRead(notification: NotificationModel) {
-        viewModelScope.launch {
-            repository.updateNotification(notification.copy(isRead = true))
-        }
+        viewModelScope.launch { repository.updateNotification(notification.copy(isRead = true)) }
     }
 
     fun deleteNotification(notification: NotificationModel) {
-        viewModelScope.launch {
-            repository.deleteNotification(notification)
-        }
+        viewModelScope.launch { repository.deleteNotification(notification) }
     }
 }

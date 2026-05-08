@@ -33,8 +33,9 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="com.example.note2.ACTION_DAILY_REMINDER" />
-                <action android:name="com.example.note2.ACTION_NOTE_REMINDER" />
+                <!-- PHẢI KHỚP VỚI HẰNG SỐ TRONG CODE (applicationId) -->
+                <action android:name="com.bodmain.SkyNote.ACTION_DAILY_REMINDER" />
+                <action android:name="com.bodmain.SkyNote.ACTION_NOTE_REMINDER" />
             </intent-filter>
         </receiver>
 
